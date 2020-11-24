@@ -68,9 +68,11 @@ import assert from "assert"
   
   for (const employee of employees) {
     
-    await test(`${employee} is a string`, () => {
-      assert(typeof employee === "string")
-    });
+	const titleFunc = (shouldBeEmployee) => shouldBeEmployee + ' test';
+
+    await test(titleFunc, (person) => {
+      assert(typeof person === "string")
+    }, employee);
     
   }
 });
