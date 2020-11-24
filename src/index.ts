@@ -53,7 +53,15 @@ class Logger {
 	};
 
 	subtractPadding = () => {
-		this.padding = this.padding.slice(this.padding.length - 2);
+		if (this.padding.length === 2) {
+			this.padding = "";
+		} else {
+			this.padding = this.padding.slice(this.padding.length - 2);
+		}
+	};
+
+	flushPadding = () => {
+		this.padding = "";
 	};
 
 	log = (...args: any[]) => {
@@ -64,8 +72,6 @@ class Logger {
 		}
 	};
 }
-
-const logCache = console.log;
 
 let capturedLogs = [];
 
@@ -100,27 +106,46 @@ class Clock {
 }
 
 class Petzl {
-	logger = new Logger();
+	private logger: Logger;
 
-	log = this.logger.log;
+	constructor(logger?: (...args: any[]) => void) {
+		this.logger = logger ? new Logger(logger) : new Logger();
+		process.on("beforeExit", () => {
+			report();
+		});
+	}
 
-	context: Context = {
+	private context: Context = {
 		passed: 0,
 		failed: 0,
 		totalRuntime: 0,
 		errors: [],
 	};
 
-	pass = (title: string, runtime: number) => {
-		this.log(chalk.green("PASSED: "), title, chalk.green(`(${runtime}ms)`));
+	private pass = (title: string, clock: Clock) => {
+		clock.stop();
+		const runtime = clock.calc();
+
+		this.logger.log(
+			chalk.green("PASSED: "),
+			title,
+			chalk.green(`(${runtime}ms)`)
+		);
 		this.context.passed += 1;
 		if (runtime > 0) {
 			this.context.totalRuntime += runtime;
 		}
 	};
 
-	fail = (title: string, runtime: number, error: Error) => {
-		this.log(chalk.red("FAILED: "), title, chalk.red(`(${runtime}ms)`));
+	private fail = (title: string, clock: Clock, error: Error) => {
+		clock.stop();
+		const runtime = clock.calc();
+
+		this.logger.log(
+			chalk.red("FAILED: "),
+			title,
+			chalk.red(`(${runtime}ms)`)
+		);
 
 		this.context.failed += 1;
 		this.context.errors.push([error, title]);
@@ -129,39 +154,51 @@ class Petzl {
 		}
 	};
 
-	test = <T extends any[]>(
+	public test = <T extends any[]>(
 		title: Title<T>,
 		cb: AnyCB<T>,
 		...args: T
 	): Promise<void> | void => {
 		const clock = new Clock();
 		const formattedTitle = getTitle(title, ...args);
+		let isPromise = false;
 
-		return new Promise(async (resolve) => {
-			try {
-				try {
-					clock.start();
-					hijackLogs();
+		try {
+			clock.start();
+			hijackLogs();
+			const possiblePromise = cb(...args);
 
-					await cb(...args);
-
-					clock.stop();
-					this.pass(formattedTitle, clock.calc());
-				} catch (err) {
-					clock.stop();
-					this.fail(formattedTitle, clock.calc(), err);
-				} finally {
-					printCapturedLogs(this.log);
-				}
-			} finally {
-				resolve();
+			if (possiblePromise instanceof Promise) {
+				// Resolve promise
+				isPromise = true;
+				return new Promise(async (resolve) => {
+					try {
+						await possiblePromise;
+						this.pass(formattedTitle, clock);
+					} catch (err) {
+						this.fail(formattedTitle, clock, err);
+					} finally {
+						printCapturedLogs(this.logger.log);
+						resolve();
+					}
+				});
+			} else {
+				// Resolve sync
+				this.pass(formattedTitle, clock);
 			}
-		});
+		} catch (err) {
+			console.log("SYNC ERROR");
+			this.fail(formattedTitle, clock, err);
+		} finally {
+			if (!isPromise) {
+				printCapturedLogs(this.logger.log);
+			}
+		}
 	};
 
-	group = (title: string, cb: () => Promise<void> | void) => {
+	public group = (title: string, cb: () => Promise<void> | void) => {
 		const formattedTitle = title.trim() + ":";
-		this.log(chalk.underline.bold(formattedTitle));
+		this.logger.log(chalk.underline.bold(formattedTitle));
 		this.logger.addPadding();
 
 		const runGroup = async () => {
@@ -175,20 +212,20 @@ class Petzl {
 		return Promise.resolve(runGroup());
 	};
 
-	report = () => {
+	public report = () => {
+		const { flushPadding, log } = this.logger;
+
+		flushPadding();
+
 		const { errors, ...context } = this.context;
 		if (errors) {
 			for (let i = 0; i < errors.length; i++) {
 				const [error, title] = errors[i];
-				this.log(
-					chalk.magenta("=====================================")
-				);
+				log(chalk.magenta("====================================="));
 
-				this.log("\n");
+				log("\n");
 
-				this.log(
-					chalk.red.bold.underline(`Failed #${i + 1} - ${title}`)
-				);
+				log(chalk.red.bold.underline(`Failed #${i + 1} - ${title}`));
 
 				const expected =
 					typeof error.expected === "object"
@@ -201,22 +238,23 @@ class Petzl {
 						: error.actual;
 
 				if (error instanceof AssertionError) {
-					this.log(chalk.green(`    expected: ${expected}`));
-					this.log(chalk.red(`    recieved: ${actual}`));
+					log(chalk.green(`    expected: ${expected}`));
+					log(chalk.red(`    recieved: ${actual}`));
 				} else {
-					this.log(error);
+					log(error);
 				}
 
-				this.log("\n");
+				log("\n");
 			}
-			this.log(chalk.magenta("====================================="));
+			log(chalk.magenta("====================================="));
 		}
-		this.log(chalk.green.bold(`Passed: ${context.passed}`));
-		this.log(chalk.red.bold(`Failed: ${context.failed}`));
-		this.log(chalk.blue.bold(`Runtime: ${context.totalRuntime}ms`));
+		log(chalk.green.bold(`Passed: ${context.passed}`));
+		log(chalk.red.bold(`Failed: ${context.failed}`));
+		log(chalk.blue.bold(`Runtime: ${context.totalRuntime}ms`));
 	};
 }
 
 const { test: t, group, report } = new Petzl();
 
 export { t as test, group, report };
+export default Petzl;
