@@ -15,39 +15,54 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const perf_hooks_1 = require("perf_hooks");
 const log_1 = require("./log");
 const testManager_1 = __importDefault(require("./testManager"));
+const getTitle = (title, ...args) => {
+    let rawTitle;
+    if (typeof title === "string") {
+        rawTitle = title;
+    }
+    else if (typeof title === "function") {
+        rawTitle = title(...args);
+    }
+    const formattedTitle = rawTitle.trim();
+    return formattedTitle;
+};
+const clock = {
+    startTime: 0,
+    endTime: 0,
+    start: () => {
+        clock.startTime = perf_hooks_1.performance.now();
+    },
+    stop: () => {
+        clock.endTime = perf_hooks_1.performance.now();
+    },
+    calc: () => {
+        return Math.round(Math.abs(clock.endTime - clock.startTime));
+    },
+};
 const test = (title, cb, ...args) => {
     const AsyncFunction = (() => __awaiter(void 0, void 0, void 0, function* () { })).constructor;
-    if (cb instanceof AsyncFunction) {
+    if (cb["then"] && typeof cb["then"] === "function") {
+        console.log("ASYNC");
         return new Promise((resolve) => __awaiter(void 0, void 0, void 0, function* () {
             try {
-                let startTime;
-                let endTime;
-                const oldConsoleLog = console.log;
-                let logs = [];
-                const calcRunTime = () => Math.round(endTime - startTime);
+                const formattedTitle = getTitle(title, ...args);
                 try {
-                    startTime = perf_hooks_1.performance.now();
-                    yield test.before();
+                    clock.start();
                     try {
-                        global.console.log = (...message) => logs.push(...message);
+                        log_1.hijackLogs();
                         yield cb(...args);
                     }
                     finally {
-                        global.console.log = oldConsoleLog;
+                        log_1.restoreLogs();
                     }
-                    endTime = perf_hooks_1.performance.now();
-                    testManager_1.default.pass(title, calcRunTime());
+                    clock.stop();
+                    testManager_1.default.pass(formattedTitle, clock.calc());
                 }
                 catch (err) {
-                    endTime = perf_hooks_1.performance.now();
-                    testManager_1.default.fail(title, calcRunTime(), err);
+                    testManager_1.default.fail(formattedTitle, clock.calc(), err);
                 }
                 finally {
-                    if (logs.length) {
-                        for (const message of logs) {
-                            log_1.log("* ", message);
-                        }
-                    }
+                    log_1.printLogs();
                 }
             }
             finally {
@@ -56,37 +71,6 @@ const test = (title, cb, ...args) => {
         }));
     }
     else {
-        let startTime;
-        let endTime;
-        const oldConsoleLog = console.log;
-        let logs = [];
-        const calcRunTime = () => Math.round(endTime - startTime);
-        try {
-            startTime = perf_hooks_1.performance.now();
-            test.before();
-            try {
-                global.console.log = (...message) => logs.push(...message);
-                cb(...args);
-            }
-            finally {
-                global.console.log = oldConsoleLog;
-            }
-            endTime = perf_hooks_1.performance.now();
-            testManager_1.default.pass(title, calcRunTime());
-        }
-        catch (err) {
-            endTime = perf_hooks_1.performance.now();
-            testManager_1.default.fail(title, calcRunTime(), err);
-        }
-        finally {
-            if (logs.length) {
-                for (const message of logs) {
-                    log_1.log("* ", message);
-                }
-            }
-        }
     }
 };
-test.before = () => { };
-test.after = () => { };
 exports.default = test;

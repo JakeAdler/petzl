@@ -1,9 +1,20 @@
 import { test, group, report } from "../src";
 import assert from "assert";
 
+const sleep = async () => {
+	await Promise.resolve((resolve) => {
+		setTimeout(resolve, 500);
+	});
+};
+
 (async () => {
-	test("Non grouped test", () => {
+	test("Non grouped test", async () => {
 		console.log("logged from inside test");
+	});
+
+	test("Ton of assertions", () => {
+		sleep();
+		assert.strictEqual(1, 2);
 	});
 
 	await test("Non grouped test", async () => {
@@ -27,7 +38,8 @@ import assert from "assert";
 			const macro = (index: number, data: number) => {
 				assert.strictEqual(23 + i, data);
 			};
-			await test(`Macro #${i}`, macro, i, data[i]);
+			const macroTitle = (index) => `Macro ${index}`;
+			await test(macroTitle, macro, i, data[i]);
 		}
 	});
 
@@ -42,7 +54,9 @@ import assert from "assert";
 			await group("super nested group 1", async () => {
 				test("super duper nested test 1", () => {});
 				test("super duper nested test 2", () => {});
-				test("super duper nested test 3", () => {});
+				test("super duper nested test 3", () => {
+					assert.strictEqual(1, 2);
+				});
 			});
 			test("super nested test 2", () => {});
 			await group("nested group 2", async () => {
@@ -54,12 +68,6 @@ import assert from "assert";
 			});
 			test("super nested test 3", () => {});
 		});
-	});
-
-	await test("Ton of assertions", async () => {
-		for (let i = 0; i < 100000; i++) {
-			assert(eval("1 === 1"))
-		}
 	});
 
 	report();

@@ -1,8 +1,4 @@
 declare type Test<T extends any[]> = (...args: T) => Promise<void> | void;
-interface TestFunc {
-    <T extends any[]>(title: string, cb: Test<T>, ...args: T): Promise<void>;
-    before: () => Promise<void> | void;
-    after: () => Promise<void> | void;
-}
-declare const test: TestFunc;
+declare type Title<T extends any[]> = string | ((...args: Partial<T>) => string);
+declare const test: <T extends any[]>(title: Title<T>, cb: Test<T>, ...args: T) => Promise<void>;
 export default test;
