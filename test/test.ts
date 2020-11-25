@@ -10,22 +10,30 @@ export default async () => {
 	it("Non grouped test", () => {
 		console.log("logged from inside test");
 	});
+
 	await it("Ton of assertions", async () => {
 		console.log("GOODNIGHT");
 		await sleep();
 		console.log("HAH");
+		console.log("Will have multiple failures");
 		assert.strictEqual(1, 2);
+		assert.strictEqual(1, 3);
 	});
-	it("Non grouped test", () => {
+
+	await it("Non grouped test", async () => {
 		console.log("logged from inside 500 test");
 	});
+
 	describe("Grouped tests", () => {
 		it("grouped test 1", () => {});
 		it("grouped test 2", () => {
+			/* explode("awww so sad"); */
+
 			console.log("inside second grouped test");
 		});
 		it("grouped test 3", () => {});
 	});
+
 	describe("Macro style tests", () => {
 		let data = [23, 24, 25];
 		for (let i = 0; i < data.length; i++) {
@@ -36,6 +44,7 @@ export default async () => {
 			it(macroTitle, macro, i, data[i]);
 		}
 	});
+
 	await describe("nested groups", async () => {
 		await describe("async nested group 1", async () => {
 			it("super nested test 1", () => {});
@@ -56,10 +65,13 @@ export default async () => {
 						assert.strictEqual(1, 2);
 					});
 				});
+
 				it("super duper nested test 2", () => {});
 			});
+
 			it("super nested test 2", () => {});
-			await describe("nested group 2", async () => {
+			await describe("nested group 3", async () => {
+				console.log("in a describe block");
 				await it("super duper nested test 4", () => {});
 				await it("super duper nested test 5", async () => {
 					console.log("GOODNIGHT");

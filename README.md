@@ -11,9 +11,9 @@ While writing [Algotia](https://github.com/Algotia), I became dissatisfied with 
 -   Does not run tests by file name, (in fact, there is no test runner at all!)
 -   Does not provide hooks like `before` and `after`
 -   Does not provide an assertion library
--   Tests and groups are asynchronous functions
+-   Tests and groups can be defined synchronously or asynchronously.
 
-**...so what *does* it do?**
+**...so what _does_ it do?**
 
 Not a whole lot, but thats the point!
 
@@ -26,7 +26,6 @@ Not a whole lot, but thats the point!
     -   Pads any console logs for visual separation
 -   Provides a lightweight reporter
 
-
 **Well thats not very fun...**
 
 It's not supposed to be!
@@ -34,47 +33,75 @@ I needed a minimal, extensible solution that got the f out of my way.
 
 **Ok... how does it work?**
 
-Here are some recipes:
+### Usage
+
+To install petzl, run:
+
+```sh
+npm install petzel
+```
+
+If you want to use `npm test | npm t`, in your `package.json`:
+
+```json
+{
+	"name": "my-package",
+	"scripts": {
+		"test": "npx node test/main.js"
+	},
+	"devDependencies": {
+		"ava": "^1.0.0"
+	}
+}
+```
+
+For TypeScript, replace `node` with `ts-node`:
+
+```json
+{
+	"name": "my-package",
+	"scripts": {
+		"test": "npx node test/main.js"
+	},
+	"devDependencies": {
+		"ava": "^1.0.0"
+	}
+}
+```
 
 ### Basic example
 
 ```js
-import {test, report} from "petzl"
-import assert from "assert"
+import { test, report } from "petzl";
+import assert from "assert";
 
-// Until there is top-level async/await support, you can do something like this
-// And yes, I know its ugly.
-
-(async () => {
-  try {
-    await test("1 + 1 = 2", () => {
-      assert(1 + 1 === 2)
-    });
-  } finally {
-    report()
-  }
-})()
+export default async () => {
+	await test("1 + 1 = 2", () => {
+		assert(1 + 1 === 2);
+	});
+};
 ```
 
 ### Macro pattern
 
 ```js
+import { test, report } from "petzel";
+import assert from "assert";
 
-import {test, report} from "petzel"
-import assert from "assert"
+const employees = ["Michael", "Dwight", "Jim"];
 
-(async () => {
-  const employees = ["Michael", "Dwight", "Jim"];
-  
-  for (const employee of employees) {
-    
-	const titleFunc = (shouldBeEmployee) => shouldBeEmployee + ' test';
-
-    await test(titleFunc, (person) => {
-      assert(typeof person === "string")
-    }, employee);
-    
-  }
-});
-
+export default async () => {
+	describe("Employees", () => {
+		for (const employee of employees) {
+			const titleFunc = (shouldBeEmployee) => shouldBeEmployee + " test";
+			it(
+				(employeeName) => `Employee should be string: ${employeeName}`,
+				(person) => {
+					assert(typeof person === "string");
+				},
+				employee
+			);
+		}
+	});
+};
 ```
