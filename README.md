@@ -72,11 +72,11 @@ For TypeScript, replace `node` with `ts-node`:
 ### Basic example
 
 ```js
-import { test, report } from "petzl";
+import { it } from "petzl";
 import assert from "assert";
 
 export default async () => {
-	await test("1 + 1 = 2", () => {
+	await it("1 + 1 = 2", () => {
 		assert(1 + 1 === 2);
 	});
 };
@@ -85,7 +85,7 @@ export default async () => {
 ### Macro pattern
 
 ```js
-import { test, report } from "petzel";
+import { it, describe } from "petzel";
 import assert from "assert";
 
 const employees = ["Michael", "Dwight", "Jim"];
