@@ -18,7 +18,7 @@ While writing [Algotia](https://github.com/Algotia), I became dissatisfied with 
 Not a whole lot, but thats the point!
 
 -   Wraps tests in a very thin layer that keeps track of 3 things:
-    -   Whether the async callback resolves or rejects
+    -   Whether an error was thrown during the test or not (pass or fail).
     -   How long the test runs
     -   Any console logs that were fired during the test.
 -   Wraps groups in an even thinner layer that simply

@@ -19,7 +19,7 @@ const summarize = (logger, context, configuration) => {
         equalSeperator = "\n";
         dashSeperator = "\n";
     }
-    if (errors) {
+    if (errors.length) {
         log("\n");
         for (let i = 0; i < errors.length; i++) {
             const [error, title] = errors[i];

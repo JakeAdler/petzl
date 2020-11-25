@@ -1,6 +1,5 @@
 import chalk from "chalk";
 import { performance } from "perf_hooks";
-import { inspect } from "util";
 import Logger from "./logger";
 import summarize from "./summarize";
 import {
@@ -12,7 +11,7 @@ import {
 } from "./types";
 
 const defaultConfiguration: Configuration = {
-	logger: console.log,
+	logger: console,
 	autoReport: true,
 	colors: true,
 	format: true,

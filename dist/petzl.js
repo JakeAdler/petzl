@@ -18,7 +18,7 @@ const logger_1 = __importDefault(require("./logger"));
 const summarize_1 = __importDefault(require("./summarize"));
 const types_1 = require("./types");
 const defaultConfiguration = {
-    logger: console.log,
+    logger: console,
     autoReport: true,
     colors: true,
     format: true,
@@ -91,14 +91,9 @@ class Petzl {
                 this.fail(formattedTitle, clock, err);
                 this.canItBeRun = true;
             };
-            const handleError = (err, reject) => {
+            const handleError = (err) => {
                 if (err instanceof types_1.Explosion) {
-                    if (reject) {
-                        reject(err);
-                    }
-                    else {
-                        throw err;
-                    }
+                    throw { __explosion: true, message: err.message, err };
                 }
                 else {
                     fail(err);
@@ -163,8 +158,14 @@ class Petzl {
         this.config = configuration;
         this.logger = new logger_1.default({ logger, colors, format, symbols });
         process.on("unhandledRejection", (reason) => {
-            this.logger.log(this.logger.colors.red("\nFatal: unhandled rejection\n"));
-            this.logger.log(reason, "\n");
+            if (reason["__explosion"]) {
+                this.logger.log(this.logger.colors.red(`\nExplosion: ${reason["message"]}\n`));
+                this.logger.log(reason["err"], "\n");
+            }
+            else {
+                this.logger.log(this.logger.colors.red("\nFatal: unhandled rejection\n"));
+                this.logger.log(reason, "\n");
+            }
             process.exit(1);
         });
         process.on("uncaughtException", (error) => {

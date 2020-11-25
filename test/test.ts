@@ -1,4 +1,5 @@
 import { it, describe } from "../src";
+import groupTests from "./groups";
 import assert from "assert";
 
 const timeout = () => new Promise((resolve) => setTimeout(resolve, 500));
@@ -33,6 +34,8 @@ export default async () => {
 		});
 		it("grouped test 3", () => {});
 	});
+
+	groupTests();
 
 	describe("Macro style tests", () => {
 		let data = [23, 24, 25];

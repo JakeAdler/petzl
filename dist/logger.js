@@ -56,7 +56,7 @@ class Logger {
             this.capturedLogs = [];
         };
         const { logger, format, colors, symbols } = configuration;
-        this.logFn = logger;
+        this.logFn = logger.log;
         this.format = format;
         this.symbols = symbols;
         if (colors) {

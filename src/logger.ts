@@ -10,7 +10,7 @@ class Logger {
 	constructor(configuration: Configuration) {
 		const { logger, format, colors, symbols } = configuration;
 
-		this.logFn = logger;
+		this.logFn = logger.log;
 		this.format = format;
 		this.symbols = symbols;
 

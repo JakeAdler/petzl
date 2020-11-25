@@ -5,7 +5,7 @@ export type LogFn = (...args: any[]) => void;
 export type Title<T extends any[]> = string | ((...args: Partial<T>) => string);
 
 export interface Configuration {
-	logger?: (...args: any[]) => void;
+	logger?: Console;
 	autoReport?: boolean;
 	colors?: boolean;
 	format?: boolean;
