@@ -20,19 +20,6 @@ interface Context {
 	errors: any[];
 }
 
-const getTitle = <T extends any[]>(title: Title<T>, ...args: T): string => {
-	let rawTitle: string;
-	if (typeof title === "string") {
-		rawTitle = title;
-	} else if (typeof title === "function") {
-		rawTitle = title(...args);
-	}
-
-	const formattedTitle = rawTitle.trim();
-
-	return formattedTitle;
-};
-
 class Logger {
 	rawLog: (...args: any[]) => void;
 
@@ -69,25 +56,38 @@ class Logger {
 			this.rawLog(...args);
 		}
 	};
-}
 
-let capturedLogs = [];
-
-const hijackLogs = () => {
-	global.console.log = (...args: any[]) => {
-		capturedLogs.push(...args);
-	};
-};
-
-const printCapturedLogs = (logger: (...args: any[]) => void) => {
-	global.console.log = logger;
-	if (capturedLogs.length) {
-		for (const message of capturedLogs) {
-			console.log("* ", message);
+	formatTitle = <T extends any[]>(title: Title<T>, ...args: T): string => {
+		let rawTitle: string;
+		if (typeof title === "string") {
+			rawTitle = title;
+		} else if (typeof title === "function") {
+			rawTitle = title(...args);
 		}
-	}
-	capturedLogs = [];
-};
+
+		const formattedTitle = rawTitle.trim();
+
+		return formattedTitle;
+	};
+
+	private capturedLogs = [];
+
+	hijackConsoleLogs = () => {
+		global.console.log = (...args: any[]) => {
+			this.capturedLogs.push(...args);
+		};
+	};
+
+	releaseConsoleLogs = () => {
+		global.console.log = this.log;
+		if (this.capturedLogs.length) {
+			for (const message of this.capturedLogs) {
+				console.log("* ", message);
+			}
+		}
+		this.capturedLogs = [];
+	};
+}
 
 class Clock {
 	startTime = 0;
@@ -113,7 +113,7 @@ class Petzl {
 		process.on("beforeExit", async () => {
 			const main = require(entryPoint).default;
 			await main();
-			process.exit()
+			process.exit();
 		});
 		process.on("exit", () => {
 			report();
@@ -166,7 +166,7 @@ class Petzl {
 	): ReturnType<typeof cb> => {
 		const clock = new Clock();
 
-		const formattedTitle = getTitle(title, ...args);
+		const formattedTitle = this.logger.formatTitle(title, ...args);
 
 		const pass = () => {
 			this.pass(formattedTitle, clock);
@@ -177,14 +177,15 @@ class Petzl {
 		};
 
 		const cleanup = () => {
-			printCapturedLogs(this.logger.log);
+			this.logger.releaseConsoleLogs();
 		};
 
 		let isPromise = false;
 
 		try {
 			clock.start();
-			hijackLogs();
+			this.logger.hijackConsoleLogs()
+
 			const possiblePromise = cb(...args);
 
 			if (possiblePromise instanceof Promise) {
@@ -214,20 +215,37 @@ class Petzl {
 		}
 	};
 
-	public group = (title: string, cb: () => Promise<void> | void) => {
-		const formattedTitle = title.trim() + ":";
+	public group = <T extends any[]>(
+		title: Title<T>,
+		cb: AnyCB<T>,
+		...args: T
+	) => {
+		const formattedTitle = this.logger.formatTitle(title, ...args);
+
 		this.logger.log(chalk.underline.bold(formattedTitle));
 		this.logger.addPadding();
 
-		const runGroup = async () => {
-			try {
-				await cb();
-			} finally {
+		let isPromise = false;
+
+		try {
+			const promise = cb(...args);
+
+			if (promise instanceof Promise) {
+				isPromise = true;
+				return new Promise<void>(async (resolve) => {
+					try {
+						await promise;
+					} finally {
+						this.logger.subtractPadding();
+						resolve();
+					}
+				});
+			}
+		} finally {
+			if (!isPromise) {
 				this.logger.subtractPadding();
 			}
-		};
-
-		return Promise.resolve(runGroup());
+		}
 	};
 
 	public report = () => {
@@ -256,6 +274,7 @@ class Petzl {
 						: error.actual;
 
 				if (error instanceof AssertionError) {
+					log("   ", error.message.split(':')[0]);
 					log(chalk.green(`    expected: ${expected}`));
 					log(chalk.red(`    recieved: ${actual}`));
 				} else {

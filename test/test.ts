@@ -7,7 +7,7 @@ const sleep = async () => {
 };
 
 export default async () => {
-	await test("Non grouped test", () => {
+	test("Non grouped test", () => {
 		console.log("logged from inside test");
 	});
 	await test("Ton of assertions", async () => {
@@ -16,17 +16,17 @@ export default async () => {
 		console.log("HAH");
 		assert.strictEqual(1, 2);
 	});
-	await test("Non grouped test", () => {
+	test("Non grouped test", () => {
 		console.log("logged from inside 500 test");
 	});
-	await group("Grouped tests", async () => {
+	group("Grouped tests", () => {
 		test("grouped test 1", () => {});
 		test("grouped test 2", () => {
 			console.log("inside second grouped test");
 		});
 		test("grouped test 3", () => {});
 	});
-	await group("Macro style tests", () => {
+	group("Macro style tests", () => {
 		let data = [23, 24, 25];
 		for (let i = 0; i < data.length; i++) {
 			const macro = (index: number, data: number) => {
@@ -37,7 +37,12 @@ export default async () => {
 		}
 	});
 	await group("nested groups", async () => {
-		group("nested group 1", async () => {
+		await group("async nested group 1", async () => {
+			test("super nested test 1", () => {});
+			test("super nested test 2", () => {});
+			test("super nested test 3", () => {});
+		});
+		group("nested group 1", () => {
 			test("super nested test 1", () => {});
 			test("super nested test 2", () => {});
 			test("super nested test 3", () => {});
@@ -55,16 +60,50 @@ export default async () => {
 			});
 			test("super nested test 2", () => {});
 			await group("nested group 2", async () => {
-				test("super duper nested test 4", () => {});
+				await test("super duper nested test 4", () => {});
 				await test("super duper nested test 5", async () => {
 					console.log("GOODNIGHT");
 					await sleep();
 					console.log("HAH");
 					console.log("still catches logs");
 				});
-				test("super duper nested test 6", () => {});
+				await test("super duper nested test 6", () => {});
 			});
-			test("super nested test 3", () => {});
+			await test("super nested test 3", () => {});
 		});
+	});
+
+	const dataList = [
+		{
+			title: "group 1",
+			data: [1, 2, 3],
+		},
+		{
+			title: "group 2",
+			data: [3, 4, 5],
+		},
+		{
+			title: "group 3",
+			data: [6, 7, 8],
+		},
+	];
+
+	dataList.forEach((dataEntry) => {
+		const macroGroupTitle = (entry) => `Macro ${entry.title}`;
+		group(
+			macroGroupTitle,
+			(dataEntry) => {
+				dataEntry.data.forEach((dataPoint) => {
+
+				const testTitle = (number) => `Test for data point ${number}`;
+
+				test(testTitle, (data) => {
+					console.log(data)
+				}, dataPoint)
+
+				})
+			},
+			dataEntry
+		);
 	});
 };
