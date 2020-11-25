@@ -2,23 +2,21 @@ import { AssertionError } from "assert";
 import chalk from "chalk";
 import { inspect } from "util";
 import { performance } from "perf_hooks";
+import { table } from "table";
 
-type AnyCB<T extends any[]> = (...args: T) => Promise<void> | void;
+type AnyCB<T extends any[]> = (...macroArgs: T) => Promise<void> | void;
 
 type Title<T extends any[]> = string | ((...args: Partial<T>) => string);
 
-interface Context {
-	passed: number;
-	failed: number;
-	totalRuntime: number;
-	errors: any[];
+interface Configuration {
+	logger?: (...args: any[]) => void;
+	autoReport?: boolean;
 }
-interface Context {
-	passed: number;
-	failed: number;
-	totalRuntime: number;
-	errors: any[];
-}
+
+const defaultConfiguration: Configuration = {
+	logger: console.log,
+	autoReport: true,
+};
 
 class Logger {
 	rawLog: (...args: any[]) => void;
@@ -58,16 +56,10 @@ class Logger {
 	};
 
 	formatTitle = <T extends any[]>(title: Title<T>, ...args: T): string => {
-		let rawTitle: string;
-		if (typeof title === "string") {
-			rawTitle = title;
-		} else if (typeof title === "function") {
-			rawTitle = title(...args);
+		if (typeof title === "function") {
+			title = title(...args);
 		}
-
-		const formattedTitle = rawTitle.trim();
-
-		return formattedTitle;
+		return title.trim();
 	};
 
 	private capturedLogs = [];
@@ -82,7 +74,7 @@ class Logger {
 		global.console.log = this.log;
 		if (this.capturedLogs.length) {
 			for (const message of this.capturedLogs) {
-				console.log("* ", message);
+				this.log("* ", message);
 			}
 		}
 		this.capturedLogs = [];
@@ -103,24 +95,30 @@ class Clock {
 	};
 }
 
-const entryPoint = "../test/test";
-
 class Petzl {
 	private logger: Logger;
 
-	constructor(logger?: (...args: any[]) => void) {
-		this.logger = logger ? new Logger(logger) : new Logger();
+	constructor(configuration?: Configuration) {
+		configuration = Object.assign({}, configuration, defaultConfiguration);
+
+		const { logger, autoReport } = configuration;
+
+		this.logger = new Logger(logger);
+
 		process.on("beforeExit", async () => {
-			const main = require(entryPoint).default;
+			const main = require(process.argv[1]).default;
 			await main();
 			process.exit();
 		});
-		process.on("exit", () => {
-			report();
-		});
+
+		if (autoReport !== false) {
+			process.on("exit", () => {
+				report();
+			});
+		}
 	}
 
-	private context: Context = {
+	private context = {
 		passed: 0,
 		failed: 0,
 		totalRuntime: 0,
@@ -129,6 +127,7 @@ class Petzl {
 
 	private pass = (title: string, clock: Clock) => {
 		clock.stop();
+
 		const runtime = clock.calc();
 
 		this.logger.log(
@@ -136,10 +135,14 @@ class Petzl {
 			title,
 			chalk.green(`(${runtime}ms)`)
 		);
+
 		this.context.passed += 1;
+
 		if (runtime > 0) {
 			this.context.totalRuntime += runtime;
 		}
+
+		this.logger.releaseConsoleLogs();
 	};
 
 	private fail = (title: string, clock: Clock, error: Error) => {
@@ -153,13 +156,17 @@ class Petzl {
 		);
 
 		this.context.failed += 1;
+
 		this.context.errors.push([error, title]);
+
 		if (runtime > 0) {
 			this.context.totalRuntime += runtime;
 		}
+
+		this.logger.releaseConsoleLogs();
 	};
 
-	public test = <T extends any[]>(
+	public it = <T extends any[]>(
 		title: Title<T>,
 		cb: AnyCB<T>,
 		...args: T
@@ -176,21 +183,14 @@ class Petzl {
 			this.fail(formattedTitle, clock, err);
 		};
 
-		const cleanup = () => {
-			this.logger.releaseConsoleLogs();
-		};
-
-		let isPromise = false;
-
 		try {
 			clock.start();
-			this.logger.hijackConsoleLogs()
+			this.logger.hijackConsoleLogs();
 
 			const possiblePromise = cb(...args);
 
 			if (possiblePromise instanceof Promise) {
-				// Resolve promise
-				isPromise = true;
+				// Resolve promise cb
 				return new Promise<void>(async (resolve) => {
 					try {
 						await possiblePromise;
@@ -198,24 +198,19 @@ class Petzl {
 					} catch (err) {
 						fail(err);
 					} finally {
-						cleanup();
 						resolve();
 					}
 				});
 			} else {
-				// Resolve sync
+				// Resolve sync cb
 				pass();
 			}
 		} catch (err) {
 			fail(err);
-		} finally {
-			if (!isPromise) {
-				cleanup();
-			}
 		}
 	};
 
-	public group = <T extends any[]>(
+	public describe = <T extends any[]>(
 		title: Title<T>,
 		cb: AnyCB<T>,
 		...args: T
@@ -250,19 +245,24 @@ class Petzl {
 
 	public report = () => {
 		const { flushPadding, log } = this.logger;
+		const { errors, ...context } = this.context;
 
 		flushPadding();
 
-		const { errors, ...context } = this.context;
+		let seperator = "";
+		for (let i = 0; i < process.stdout.columns; i++) {
+			seperator += "=";
+		}
+
 		if (errors) {
+			log(chalk.magenta(seperator), "\n");
 			for (let i = 0; i < errors.length; i++) {
 				const [error, title] = errors[i];
-				log(chalk.magenta("====================================="));
-
-				log("\n");
 
 				log(chalk.red.bold.underline(`Failed #${i + 1} - ${title}`));
 
+				const pathWithLineNumber = error.stack.split("at ")[1];
+				log(`    @ ${pathWithLineNumber.trim()}`);
 				const expected =
 					typeof error.expected === "object"
 						? inspect(error.expected, false, 1)
@@ -274,24 +274,27 @@ class Petzl {
 						: error.actual;
 
 				if (error instanceof AssertionError) {
-					log("   ", error.message.split(':')[0]);
+					log("   ", error.message.split(":")[0]);
 					log(chalk.green(`    expected: ${expected}`));
 					log(chalk.red(`    recieved: ${actual}`));
 				} else {
 					log(error);
 				}
 
-				log("\n");
+				if (i !== errors.length - 1) {
+				}
 			}
-			log(chalk.magenta("====================================="));
+			log(chalk.magenta(seperator));
 		}
-		log(chalk.green.bold(`Passed: ${context.passed}`));
-		log(chalk.red.bold(`Failed: ${context.failed}`));
-		log(chalk.blue.bold(`Runtime: ${context.totalRuntime}ms`));
+		const passed = [chalk.green.bold(`Passed`), context.passed];
+		const faied = [chalk.red.bold(`Failed`), context.failed];
+		const runtime = [chalk.blue.bold(`Runtime`), context.totalRuntime];
+		const endReport = [passed, faied, runtime];
+		log(table(endReport));
 	};
 }
 
-const { test: t, group, report } = new Petzl();
+const { it, describe, report } = new Petzl();
 
-export { t as test, group, report };
+export { it, describe, report };
 export default Petzl;
