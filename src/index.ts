@@ -3,8 +3,6 @@ import chalk from "chalk";
 import { inspect } from "util";
 import { performance } from "perf_hooks";
 
-type SyncCB<T extends any[]> = (...args: T) => void;
-type AsyncCB<T extends any[]> = (...args: T) => Promise<void>;
 type AnyCB<T extends any[]> = (...args: T) => Promise<void> | void;
 
 type Title<T extends any[]> = string | ((...args: Partial<T>) => string);
@@ -56,7 +54,7 @@ class Logger {
 		if (this.padding.length === 2) {
 			this.padding = "";
 		} else {
-			this.padding = this.padding.slice(this.padding.length - 2);
+			this.padding = this.padding.slice(0, this.padding.length - 2);
 		}
 	};
 
@@ -105,12 +103,19 @@ class Clock {
 	};
 }
 
+const entryPoint = "../test/test";
+
 class Petzl {
 	private logger: Logger;
 
 	constructor(logger?: (...args: any[]) => void) {
 		this.logger = logger ? new Logger(logger) : new Logger();
-		process.on("beforeExit", () => {
+		process.on("beforeExit", async () => {
+			const main = require(entryPoint).default;
+			await main();
+			process.exit()
+		});
+		process.on("exit", () => {
 			report();
 		});
 	}
@@ -158,9 +163,23 @@ class Petzl {
 		title: Title<T>,
 		cb: AnyCB<T>,
 		...args: T
-	): Promise<void> | void => {
+	): ReturnType<typeof cb> => {
 		const clock = new Clock();
+
 		const formattedTitle = getTitle(title, ...args);
+
+		const pass = () => {
+			this.pass(formattedTitle, clock);
+		};
+
+		const fail = (err) => {
+			this.fail(formattedTitle, clock, err);
+		};
+
+		const cleanup = () => {
+			printCapturedLogs(this.logger.log);
+		};
+
 		let isPromise = false;
 
 		try {
@@ -171,27 +190,26 @@ class Petzl {
 			if (possiblePromise instanceof Promise) {
 				// Resolve promise
 				isPromise = true;
-				return new Promise(async (resolve) => {
+				return new Promise<void>(async (resolve) => {
 					try {
 						await possiblePromise;
-						this.pass(formattedTitle, clock);
+						pass();
 					} catch (err) {
-						this.fail(formattedTitle, clock, err);
+						fail(err);
 					} finally {
-						printCapturedLogs(this.logger.log);
+						cleanup();
 						resolve();
 					}
 				});
 			} else {
 				// Resolve sync
-				this.pass(formattedTitle, clock);
+				pass();
 			}
 		} catch (err) {
-			console.log("SYNC ERROR");
-			this.fail(formattedTitle, clock, err);
+			fail(err);
 		} finally {
 			if (!isPromise) {
-				printCapturedLogs(this.logger.log);
+				cleanup();
 			}
 		}
 	};
