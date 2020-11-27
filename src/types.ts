@@ -1,4 +1,6 @@
-export type AnyCB<T extends any[]> = (...macroArgs: T) => Promise<void> | void;
+export type AnyCB = () => Promise<void> | void;
+
+export type TestCB<T extends any[]> = (...macroArgs: T) => Promise<void> | void;
 
 export type LogFn = (...args: any[]) => void;
 
@@ -10,6 +12,36 @@ export interface Configuration {
 	format?: boolean;
 	symbols?: boolean;
 	autoRun?: boolean;
+}
+
+export interface Action {
+	type: "it" | "describe-start" | "describe-end" | "hook";
+}
+
+export interface HookAction extends Action {
+	type: "hook";
+	cb: AnyCB;
+}
+
+export interface ItAction<T extends any[]> extends Action {
+	type: "it";
+	title: string;
+	cb: TestCB<T>;
+	args: T;
+}
+
+export interface DescribeStartAction {
+	type: "describe-start";
+	title: string;
+}
+
+export interface DescribeEndAction {
+	type: "describe-end";
+}
+
+export interface Hooks {
+	beforeEach: AnyCB;
+	afterEach: AnyCB;
 }
 
 export interface Colors {
@@ -29,3 +61,27 @@ export interface Context {
 }
 
 export class NestedTestError extends Error {}
+
+// Guards
+
+export const isHookAction = (action: Action): action is HookAction => {
+	return action.type === "hook";
+};
+
+export const isItAction = <T extends any[]>(
+	action: Action
+): action is ItAction<T> => {
+	return action.type === "it";
+};
+
+export const isDescribeStartAction = (
+	action: Action
+): action is DescribeStartAction => {
+	return action.type === "describe-start";
+};
+
+export const isDescribeEndAction = (
+	action: Action
+): action is DescribeEndAction => {
+	return action.type === "describe-end";
+};

@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { LogFn, Colors, Title, Configuration } from "./types";
+import { LogFn, Colors, Title, Configuration, Hooks } from "./types";
 
 class Logger {
 	logFn: LogFn;
@@ -68,15 +68,53 @@ class Logger {
 		return title.trim();
 	};
 
+	pass = (title: string, runtime: number) => {
+		this.log(
+			this.colors.green("PASSED: "),
+			title,
+			this.colors.green(`(${runtime}ms)`)
+		);
+	};
+
+	fail = (title: string, runtime: number) => {
+		this.log(
+			this.colors.red("FAILED: "),
+			title,
+			this.colors.red(`(${runtime}ms)`)
+		);
+	};
+
+	logGroupTitle = (title: string) => {
+		this.log(this.colors.bold(title));
+		this.addPadding()
+	}
+
 	private capturedLogs = [];
 
-	hijackConsoleLogs = () => {
+	public hijackConsoleLogs = () => {
 		global.console.log = (...args: any[]) => {
 			this.capturedLogs.push(...args);
 		};
 	};
 
-	releaseConsoleLogs = () => {
+	public releaseHookLog = (hookName: keyof Hooks) => {
+		global.console.log = this.log;
+		if (this.capturedLogs.length) {
+			this.log(this.colors.blue(`${hookName}:`));
+			this.addPadding();
+			for (const message of this.capturedLogs) {
+				if (this.symbols !== false) {
+					this.log("- ", message);
+				} else {
+					this.log(message);
+				}
+			}
+			this.subtractPadding();
+		}
+		this.capturedLogs = [];
+	};
+
+	public releaseTestLog = () => {
 		global.console.log = this.log;
 		if (this.capturedLogs.length) {
 			for (const message of this.capturedLogs) {

@@ -1,8 +1,22 @@
-import chalk from "chalk";
 import { performance } from "perf_hooks";
 import Logger from "./logger";
 import summarize from "./summarize";
-import { Configuration, Title, AnyCB, NestedTestError } from "./types";
+import {
+	AnyCB,
+	Configuration,
+	Title,
+	TestCB,
+	Hooks,
+	Action,
+	HookAction,
+	ItAction,
+	DescribeStartAction,
+	DescribeEndAction,
+	isDescribeStartAction,
+	isDescribeEndAction,
+	isHookAction,
+	isItAction,
+} from "./types";
 
 const defaultConfiguration: Configuration = {
 	logger: console,
@@ -13,16 +27,19 @@ const defaultConfiguration: Configuration = {
 };
 
 class Clock {
-	startTime = 0;
-	endTime = 0;
-	start = () => {
+	constructor() {
+		this.start();
+	}
+
+	private startTime = 0;
+	private endTime = 0;
+
+	public start = () => {
 		this.startTime = performance.now();
 	};
-	stop = () => {
+
+	public calc = (): number => {
 		this.endTime = performance.now();
-	};
-	calc = (): number => {
-		this.stop();
 		return Math.round(Math.abs(this.endTime - this.startTime));
 	};
 }
@@ -40,11 +57,10 @@ class Petzl {
 
 		if (configuration.autoRun === true) {
 			setImmediate(() => {
-				require(process.argv[1])
-					.default()
-					.then(() => {
-						summarize(this.logger, this.context, configuration);
-					});
+				require(process.argv[1]);
+				this.runQueue().then(() => {
+					summarize(this.logger, this.context, this.config);
+				});
 			});
 		}
 	}
@@ -61,134 +77,181 @@ class Petzl {
 		errors: [],
 	};
 
-	private pass = (title: string, clock: Clock) => {
-		const runtime = clock.calc();
-
-		this.isTestRunning = false;
-
-		this.logger.log(
-			this.logger.colors.green("PASSED: "),
-			title,
-			this.logger.colors.green(`(${runtime}ms)`)
-		);
-
-		this.context.passed += 1;
-
-		if (runtime > 0) {
-			this.context.totalRuntime += runtime;
-		}
-
-		this.logger.releaseConsoleLogs();
+	private hooks: Hooks = {
+		beforeEach: () => {},
+		afterEach: () => {},
 	};
 
-	private fail = (title: string, clock: Clock, error: Error) => {
-		const runtime = clock.calc();
-
-		this.isTestRunning = false;
-
-		this.logger.log(
-			this.logger.colors.red("FAILED: "),
-			title,
-			this.logger.colors.red(`(${runtime}ms)`)
-		);
-
-		this.context.failed += 1;
-
-		this.context.errors.push([error, title]);
-
-		if (runtime > 0) {
-			this.context.totalRuntime += runtime;
-		}
-
-		this.logger.releaseConsoleLogs();
+	private hooksCache: Hooks = {
+		beforeEach: () => {},
+		afterEach: () => {},
 	};
 
-	private isTestRunning = false;
+	private useCachedHooks = () => {
+		this.hooks = Object.assign(this.hooks, this.hooksCache);
+	};
 
-	public it = <T extends any[]>(
-		title: Title<T>,
-		cb: AnyCB<T>,
-		...args: T
-	): ReturnType<typeof cb> => {
-		if (this.isTestRunning) {
-			throw new NestedTestError(
-				`\n Cannot nest ${this.logger.colors.bold("it")} blocks \n`
-			);
+	private pushHookToQueue = (hookName: keyof Hooks, cb: AnyCB) => {
+		const action: HookAction = {
+			type: "hook",
+			cb: () => {
+				this.hooks[hookName] = cb;
+			},
+		};
+		this.queue.push(action);
+	};
+
+	private cacheAndResetHooks = () => {
+		this.hooksCache = Object.assign(this.hooksCache, this.hooks);
+
+		for (const hook in this.hooks) {
+			this.hooks[hook] = () => {};
 		}
+	};
 
-		this.isTestRunning = true;
+	private runHook = async (hookName: keyof Hooks) => {
+		this.logger.hijackConsoleLogs();
+
+		await this.hooks[hookName]();
+
+		this.logger.releaseHookLog(hookName);
+	};
+
+	public beforeEach = (cb: AnyCB) => {
+		this.pushHookToQueue("beforeEach", cb);
+	};
+
+	public afterEach = (cb: AnyCB) => {
+		this.pushHookToQueue("afterEach", cb);
+	};
+
+	private queue: Action[] = [];
+
+	private runQueue = async () => {
+		const {
+			queue,
+			evaluateTest: executeTest,
+			startGroup,
+			stopGroup,
+		} = this;
+
+		for (const action of queue) {
+			if (isHookAction(action)) {
+				action.cb();
+			}
+
+			if (isItAction(action)) {
+				await executeTest(action);
+			}
+
+			if (isDescribeStartAction(action)) {
+				startGroup(action);
+			}
+
+			if (isDescribeEndAction(action)) {
+				stopGroup();
+			}
+		}
+	};
+
+	private startGroup = async (group: DescribeStartAction) => {
+		const { logger, cacheAndResetHooks } = this;
+		logger.logGroupTitle(group.title);
+		cacheAndResetHooks();
+	};
+
+	private stopGroup = () => {
+		const { logger, useCachedHooks } = this;
+		logger.subtractPadding();
+		useCachedHooks();
+	};
+
+	private evaluateTest = async <T extends any[]>(
+		action: ItAction<T>
+	): Promise<void> => {
+		const { title, cb, args } = action;
+
+		const { context, logger, runHook } = this;
+
+		await runHook("beforeEach");
+
+		logger.hijackConsoleLogs();
 
 		const clock = new Clock();
 
-		const formattedTitle = this.logger.formatTitle(title, ...args);
-
-		const pass = () => {
-			this.pass(formattedTitle, clock);
-		};
-
-		const fail = (err: any) => {
-			this.fail(formattedTitle, clock, err);
-		};
-
 		try {
-			this.logger.hijackConsoleLogs();
+			await cb(...args);
 
-			clock.start();
+			// Pass
+			const runtime = clock.calc();
 
-			const possiblePromise = cb(...args);
+			logger.pass(title, runtime);
 
-			if (possiblePromise instanceof Promise) {
-				// Resolve promise cb
-				return new Promise<void>(async (resolve) => {
-					try {
-						await possiblePromise;
-						pass();
-					} catch (err) {
-						fail(err);
-					} finally {
-						resolve();
-					}
-				});
-			} else {
-				// Resolve sync cb
-				pass();
+			context.passed += 1;
+
+			if (runtime > 0) {
+				context.totalRuntime += runtime;
 			}
+
+			logger.releaseTestLog();
 		} catch (err) {
-			fail(err);
+			// Fail
+			const runtime = clock.calc();
+
+			logger.fail(title, runtime);
+
+			context.failed += 1;
+
+			context.errors.push([err, title]);
+
+			if (runtime > 0) {
+				context.totalRuntime += runtime;
+			}
+
+			logger.releaseTestLog();
+		} finally {
+			await runHook("afterEach");
 		}
+	};
+
+	public it = <T extends any[]>(
+		title: Title<T>,
+		cb: TestCB<T>,
+		...args: T
+	): ReturnType<typeof cb> => {
+		title = this.logger.formatTitle(title, ...args);
+
+		const action: ItAction<T> = {
+			type: "it",
+			title,
+			cb,
+			args,
+		};
+
+		this.queue.push(action);
 	};
 
 	public describe = <T extends any[]>(
 		title: Title<T>,
-		cb: AnyCB<T>,
+		cb: TestCB<T>,
 		...args: T
 	): ReturnType<typeof cb> => {
-		const formattedTitle = this.logger.formatTitle(title, ...args);
+		title = this.logger.formatTitle(title, ...args);
 
-		this.logger.log(chalk.underline.bold(formattedTitle));
-		this.logger.addPadding();
+		const startAction: DescribeStartAction = {
+			type: "describe-start",
+			title,
+		};
 
-		let isPromise = false;
+		this.queue.push(startAction);
 
-		try {
-			const promise = cb(...args);
+		cb(...args);
 
-			if (promise instanceof Promise) {
-				isPromise = true;
-				return new Promise<void>(async (resolve) => {
-					try {
-						await promise;
-					} finally {
-						this.logger.subtractPadding();
-						resolve();
-					}
-				});
-			}
-		} finally {
-			if (!isPromise) {
-				this.logger.subtractPadding();
-			}
-		}
+		const endAction: DescribeEndAction = {
+			type: "describe-end",
+		};
+
+		this.queue.push(endAction);
 	};
 }
 

@@ -68,13 +68,18 @@ const summarize = (
 		colors.blue(colors.bold(`Runtime`)),
 		colors.blue(`${context.totalRuntime}ms`),
 	];
-	const endReport = [passed, faied, runtime];
+	const processRuntime = [
+		colors.blue(colors.bold(`Process Runtime`)),
+		colors.blue(`${process.uptime().toFixed(1)}s`)
+	]
+	const endReport = [passed, faied, runtime, processRuntime];
 	if (configuration.symbols) {
 		log(table(endReport));
 	} else {
 		log(...passed);
 		log(...faied);
 		log(...runtime);
+		log(...processRuntime)
 	}
 };
 
