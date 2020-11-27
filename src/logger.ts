@@ -55,17 +55,11 @@ class Logger {
 
 	log = (...args: any[]) => {
 		if (this.padding.length && this.format !== false) {
-			this.logFn(this.padding, ...args);
+			const [paddedArg, ...rest] = args;
+			this.logFn(`${this.padding}${paddedArg}`, ...rest);
 		} else {
 			this.logFn(...args);
 		}
-	};
-
-	formatTitle = <T extends any[]>(title: Title<T>, ...args: T): string => {
-		if (typeof title === "function") {
-			title = title(...args);
-		}
-		return title.trim();
 	};
 
 	pass = (title: string, runtime: number) => {

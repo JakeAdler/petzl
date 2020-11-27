@@ -14,18 +14,8 @@ const summarize = (
 
 	flushPadding();
 
-	let dashSeperator = "";
-
-	if (configuration.symbols !== false) {
-		for (let i = 0; i < process.stdout.columns; i++) {
-			dashSeperator += "-";
-		}
-	} else {
-		dashSeperator = "\n";
-	}
-
 	if (errors.length) {
-		log(colors.grey(dashSeperator));
+		log("\n");
 		for (let i = 0; i < errors.length; i++) {
 			const [error, title] = errors[i];
 
@@ -51,10 +41,10 @@ const summarize = (
 				log(error);
 			}
 
-			log(colors.grey(dashSeperator));
+			log("\n");
 		}
 	} else {
-		log(colors.grey(dashSeperator));
+		log("\n");
 	}
 	const passed = [
 		colors.green(colors.bold(`Passed`)),
@@ -70,8 +60,8 @@ const summarize = (
 	];
 	const processRuntime = [
 		colors.blue(colors.bold(`Process Runtime`)),
-		colors.blue(`${process.uptime().toFixed(1)}s`)
-	]
+		colors.blue(`${process.uptime().toFixed(1)}s`),
+	];
 	const endReport = [passed, faied, runtime, processRuntime];
 	if (configuration.symbols) {
 		log(table(endReport));
@@ -79,7 +69,7 @@ const summarize = (
 		log(...passed);
 		log(...faied);
 		log(...runtime);
-		log(...processRuntime)
+		log(...processRuntime);
 	}
 };
 

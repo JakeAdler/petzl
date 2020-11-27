@@ -1,6 +1,6 @@
-import { performance } from "perf_hooks";
 import Logger from "./logger";
 import summarize from "./summarize";
+import { formatTitle, Clock } from "./utils";
 import {
 	AnyCB,
 	Configuration,
@@ -16,6 +16,8 @@ import {
 	isDescribeEndAction,
 	isHookAction,
 	isItAction,
+	ConfigureAction,
+	isConfigurationAction,
 } from "./types";
 
 const defaultConfiguration: Configuration = {
@@ -25,24 +27,6 @@ const defaultConfiguration: Configuration = {
 	symbols: true,
 	autoRun: true,
 };
-
-class Clock {
-	constructor() {
-		this.start();
-	}
-
-	private startTime = 0;
-	private endTime = 0;
-
-	public start = () => {
-		this.startTime = performance.now();
-	};
-
-	public calc = (): number => {
-		this.endTime = performance.now();
-		return Math.round(Math.abs(this.endTime - this.startTime));
-	};
-}
 
 class Petzl {
 	private logger: Logger;
@@ -65,8 +49,8 @@ class Petzl {
 		}
 	}
 
-	public configure = (options: Partial<Configuration>) => {
-		this.config = Object.assign(this.config, options);
+	private applyConfiguration = (action: ConfigureAction) => {
+		this.config = Object.assign(this.config, action.configuration);
 		this.logger = new Logger(this.config);
 	};
 
@@ -77,18 +61,17 @@ class Petzl {
 		errors: [],
 	};
 
+	// Hooks
+
 	private hooks: Hooks = {
 		beforeEach: () => {},
 		afterEach: () => {},
 	};
 
-	private hooksCache: Hooks = {
-		beforeEach: () => {},
-		afterEach: () => {},
-	};
+	private hooksCache: Hooks[] = [];
 
 	private useCachedHooks = () => {
-		this.hooks = Object.assign(this.hooks, this.hooksCache);
+		this.hooks = Object.assign(this.hooks, this.hooksCache.pop());
 	};
 
 	private pushHookToQueue = (hookName: keyof Hooks, cb: AnyCB) => {
@@ -102,7 +85,7 @@ class Petzl {
 	};
 
 	private cacheAndResetHooks = () => {
-		this.hooksCache = Object.assign(this.hooksCache, this.hooks);
+		this.hooksCache.push({ ...this.hooks });
 
 		for (const hook in this.hooks) {
 			this.hooks[hook] = () => {};
@@ -125,31 +108,38 @@ class Petzl {
 		this.pushHookToQueue("afterEach", cb);
 	};
 
+	// Queue
+
 	private queue: Action[] = [];
 
 	private runQueue = async () => {
 		const {
 			queue,
-			evaluateTest: executeTest,
+			evaluateTest,
 			startGroup,
 			stopGroup,
+			applyConfiguration,
 		} = this;
 
 		for (const action of queue) {
 			if (isHookAction(action)) {
-				action.cb();
+				await action.cb();
 			}
 
 			if (isItAction(action)) {
-				await executeTest(action);
+				await evaluateTest(action);
 			}
 
 			if (isDescribeStartAction(action)) {
-				startGroup(action);
+				await startGroup(action);
 			}
 
 			if (isDescribeEndAction(action)) {
-				stopGroup();
+				await stopGroup();
+			}
+
+			if (isConfigurationAction(action)) {
+				applyConfiguration(action);
 			}
 		}
 	};
@@ -160,7 +150,7 @@ class Petzl {
 		cacheAndResetHooks();
 	};
 
-	private stopGroup = () => {
+	private stopGroup = async () => {
 		const { logger, useCachedHooks } = this;
 		logger.subtractPadding();
 		useCachedHooks();
@@ -214,16 +204,22 @@ class Petzl {
 		}
 	};
 
+	public configure = (options: Partial<Configuration>) => {
+		const configureAction: ConfigureAction = {
+			type: "configure",
+			configuration: options,
+		};
+		this.queue.push(configureAction);
+	};
+
 	public it = <T extends any[]>(
 		title: Title<T>,
 		cb: TestCB<T>,
 		...args: T
-	): ReturnType<typeof cb> => {
-		title = this.logger.formatTitle(title, ...args);
-
+	): void => {
 		const action: ItAction<T> = {
 			type: "it",
-			title,
+			title: formatTitle(title, ...args),
 			cb,
 			args,
 		};
@@ -233,14 +229,12 @@ class Petzl {
 
 	public describe = <T extends any[]>(
 		title: Title<T>,
-		cb: TestCB<T>,
+		cb: (...args: T) => void,
 		...args: T
-	): ReturnType<typeof cb> => {
-		title = this.logger.formatTitle(title, ...args);
-
+	): void => {
 		const startAction: DescribeStartAction = {
 			type: "describe-start",
-			title,
+			title: formatTitle(title, ...args),
 		};
 
 		this.queue.push(startAction);

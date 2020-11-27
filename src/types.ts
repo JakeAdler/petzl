@@ -15,7 +15,7 @@ export interface Configuration {
 }
 
 export interface Action {
-	type: "it" | "describe-start" | "describe-end" | "hook";
+	type: "it" | "describe-start" | "describe-end" | "hook" | "configure";
 }
 
 export interface HookAction extends Action {
@@ -30,13 +30,18 @@ export interface ItAction<T extends any[]> extends Action {
 	args: T;
 }
 
-export interface DescribeStartAction {
+export interface DescribeStartAction extends Action {
 	type: "describe-start";
 	title: string;
 }
 
-export interface DescribeEndAction {
+export interface DescribeEndAction extends Action {
 	type: "describe-end";
+}
+
+export interface ConfigureAction extends Action {
+	type: "configure";
+	configuration: Partial<Configuration>;
 }
 
 export interface Hooks {
@@ -84,4 +89,10 @@ export const isDescribeEndAction = (
 	action: Action
 ): action is DescribeEndAction => {
 	return action.type === "describe-end";
+};
+
+export const isConfigurationAction = (
+	action: Action
+): action is ConfigureAction => {
+	return action.type === "configure";
 };
