@@ -14,21 +14,18 @@ const summarize = (
 
 	flushPadding();
 
-	let equalSeperator = "";
 	let dashSeperator = "";
 
 	if (configuration.symbols !== false) {
 		for (let i = 0; i < process.stdout.columns; i++) {
-			equalSeperator += "=";
 			dashSeperator += "-";
 		}
 	} else {
-		equalSeperator = "\n";
 		dashSeperator = "\n";
 	}
 
 	if (errors.length) {
-		log("\n");
+		log(colors.grey(dashSeperator));
 		for (let i = 0; i < errors.length; i++) {
 			const [error, title] = errors[i];
 
@@ -54,12 +51,10 @@ const summarize = (
 				log(error);
 			}
 
-			if (i !== errors.length - 1) {
-				log(colors.grey(dashSeperator));
-			} else {
-				log("\n");
-			}
+			log(colors.grey(dashSeperator));
 		}
+	} else {
+		log(colors.grey(dashSeperator));
 	}
 	const passed = [
 		colors.green(colors.bold(`Passed`)),

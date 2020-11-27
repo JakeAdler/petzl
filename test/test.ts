@@ -1,5 +1,4 @@
 import { it, describe } from "../src";
-import groupTests from "./groups";
 import assert from "assert";
 
 const timeout = () => new Promise((resolve) => setTimeout(resolve, 500));
@@ -28,14 +27,10 @@ export default async () => {
 	describe("Grouped tests", () => {
 		it("grouped test 1", () => {});
 		it("grouped test 2", () => {
-			/* explode("awww so sad"); */
-
 			console.log("inside second grouped test");
 		});
 		it("grouped test 3", () => {});
 	});
-
-	groupTests();
 
 	describe("Macro style tests", () => {
 		let data = [23, 24, 25];
@@ -104,16 +99,12 @@ export default async () => {
 	];
 
 	dataList.forEach((dataEntry) => {
-		const macroGroupTitle = (entry) => `Macro ${entry.title}`;
 		describe(
-			macroGroupTitle,
+			(entry) => `Macro ${entry.title}`,
 			(dataEntry) => {
 				dataEntry.data.forEach((dataPoint) => {
-					const testTitle = (number) =>
-						`Test for data point ${number}`;
-
 					it(
-						testTitle,
+						(data) => `test for data point ${data}`,
 						(data) => {
 							console.log(data);
 						},

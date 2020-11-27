@@ -1,8 +1,7 @@
 import Petzl from "./petzl";
-import summarize from "./summarize";
 
 export default Petzl;
 
-const { it, describe, configure, explode } = new Petzl();
+const { it, describe, configure } = new Petzl();
 
-export { it, describe, configure, explode, summarize };
+export { it, describe, configure};

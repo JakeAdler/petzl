@@ -61,7 +61,7 @@ For TypeScript, replace `node` with `ts-node`:
 {
 	"name": "my-package",
 	"scripts": {
-		"test": "npx node test/main.js"
+		"test": "npx ts-node test/main.ts"
 	},
 	"devDependencies": {
 		"ava": "^1.0.0"
@@ -72,6 +72,8 @@ For TypeScript, replace `node` with `ts-node`:
 ### Basic example
 
 ```js
+// test/main.ts
+
 import { it } from "petzl";
 import assert from "assert";
 
@@ -80,6 +82,12 @@ export default async () => {
 		assert(1 + 1 === 2);
 	});
 };
+```
+
+##### Run your tests
+
+```sh
+	npx node test/test.ts
 ```
 
 ### Macro pattern

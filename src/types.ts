@@ -5,11 +5,11 @@ export type LogFn = (...args: any[]) => void;
 export type Title<T extends any[]> = string | ((...args: Partial<T>) => string);
 
 export interface Configuration {
-	logger?: Console;
-	autoReport?: boolean;
+	logger?: Pick<Console, "log">;
 	colors?: boolean;
 	format?: boolean;
 	symbols?: boolean;
+	autoRun?: boolean;
 }
 
 export interface Colors {
@@ -29,4 +29,3 @@ export interface Context {
 }
 
 export class NestedTestError extends Error {}
-export class Explosion extends Error {}
