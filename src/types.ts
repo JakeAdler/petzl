@@ -6,12 +6,23 @@ export type LogFn = (...args: any[]) => void;
 
 export type Title<T extends any[]> = string | ((...args: Partial<T>) => string);
 
+export interface Colors {
+	underline: LogFn;
+	red: LogFn;
+	green: LogFn;
+	blue: LogFn;
+	bold: LogFn;
+	magenta: LogFn;
+	grey: LogFn;
+}
+
 export interface Configuration {
 	logger?: Pick<Console, "log">;
 	colors?: boolean;
 	format?: boolean;
 	symbols?: boolean;
 	autoRun?: boolean;
+	volume?: number;
 }
 
 export interface Action {
@@ -47,15 +58,6 @@ export interface ConfigureAction extends Action {
 export interface Hooks {
 	beforeEach: AnyCB;
 	afterEach: AnyCB;
-}
-
-export interface Colors {
-	red: LogFn;
-	green: LogFn;
-	blue: LogFn;
-	bold: LogFn;
-	magenta: LogFn;
-	grey: LogFn;
 }
 
 export interface Context {

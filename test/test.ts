@@ -7,64 +7,63 @@ const sleep = async () => {
 	await timeout();
 };
 
-/* export default async () => { */
-describe("global", () => {
-	beforeEach(() => {
-		console.log("lol");
-	});
-	it("Non grouped test", async () => {
-		console.log("haha");
-	});
 
-	it("Ton of assertions", async () => {
-		console.log("GOODNIGHT");
-		await sleep();
-		console.log("HAH");
-		console.log("Will have multiple failures");
-		assert.strictEqual(1, 2);
-		assert.strictEqual(1, 3);
-	});
 
-	it("Non grouped test", async () => {
-		console.log("logged from inside 500 test");
-	});
-
-	describe("Grouped tests", () => {
-		beforeEach(() => {
-			console.log("HELLO");
-		});
-		afterEach(() => {
-			console.log("GOODBYE");
-		});
-		it("grouped test 1", () => {});
-
-		it("grouped test 2", () => {
-			console.log("inside second grouped test");
-		});
-		describe("YO", () => {
-			it("NESTED", () => {});
-			it("NESTED", () => {});
-			it("NESTED", () => {});
-			it("NESTED", () => {});
-		});
-		it("grouped test 3", () => {});
-	});
-
-	describe("Macro style tests", () => {
-		let data = [23, 24, 25];
-		for (let i = 0; i < data.length; i++) {
-			const macro = (index: number, data: number) => {
-				assert.strictEqual(23 + i, data);
-			};
-			const macroTitle = (index) => `Macro ${index}`;
-			it(macroTitle, macro, i, data[i]);
-		}
-	});
-
-	it("last tests", () => {});
-	it("last tests", () => {});
-	it("last tests", () => {});
+it("Non grouped test", async () => {
+	console.log("haha");
 });
+
+it("Ton of assertions", async () => {
+	console.log("GOODNIGHT");
+	await sleep();
+	console.log("HAH");
+	console.log("Will have multiple failures");
+	assert.strictEqual(1, 2);
+	assert.strictEqual(1, 3);
+});
+
+it("Non grouped test", async () => {
+	console.log("logged from inside 500 test");
+});
+
+describe("Grouped tests", () => {
+	beforeEach(() => {
+		console.log("HELLO");
+	});
+	afterEach(() => {
+		console.log("GOODBYE");
+	});
+
+	it("grouped test 1", () => {});
+
+	it("grouped test 2", () => {
+		console.log("inside second grouped test");
+	});
+	describe("YO", () => {
+		it("NESTED", () => {});
+		it("NESTED", () => {});
+		it("NESTED", () => {});
+		it("NESTED", () => {});
+	});
+	it("grouped test 3", () => {});
+});
+
+configure({ volume: 3 });
+
+describe("Macro style tests", () => {
+	let data = [23, 24, 25];
+	for (let i = 0; i < data.length; i++) {
+		const macro = (index: number, data: number) => {
+			assert.strictEqual(23 + i, data);
+		};
+		const macroTitle = (index) => `Macro ${index}`;
+		it(macroTitle, macro, i, data[i]);
+	}
+});
+
+it("last tests", () => {});
+it("last tests", () => {});
+it("last tests", () => {});
 /* await describe("nested groups", async () => { */
 /* 	await describe("async nested group 1", async () => { */
 /* 		it("super nested test 1", () => {}); */

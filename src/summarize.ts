@@ -2,16 +2,16 @@ import { Configuration, Context } from "./types";
 import Logger from "./logger";
 import { inspect } from "util";
 import { AssertionError } from "assert";
-import { table } from "table";
+import { getBorderCharacters, table } from "table";
 
 const summarize = (
 	logger: Logger,
 	context: Context,
 	configuration: Configuration
 ) => {
-	const { flushPadding, log, colors } = logger;
+	const { flushPadding, logFn: log, colors } = logger;
 	const { errors } = context;
-
+	
 	flushPadding();
 
 	if (errors.length) {
@@ -64,7 +64,7 @@ const summarize = (
 	];
 	const endReport = [passed, faied, runtime, processRuntime];
 	if (configuration.symbols) {
-		log(table(endReport));
+		log(table(endReport, { border: getBorderCharacters("norc") }));
 	} else {
 		log(...passed);
 		log(...faied);

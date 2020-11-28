@@ -1,4 +1,5 @@
 import Logger from "./logger";
+import Hijacker from "./hijacker";
 import summarize from "./summarize";
 import { formatTitle, Clock } from "./utils";
 import {
@@ -26,10 +27,12 @@ const defaultConfiguration: Configuration = {
 	format: true,
 	symbols: true,
 	autoRun: true,
+	volume: 3,
 };
 
 class Petzl {
 	private logger: Logger;
+	private hijacker: Hijacker;
 	private config: Configuration;
 
 	constructor(configuration?: Configuration) {
@@ -38,6 +41,7 @@ class Petzl {
 		this.config = configuration;
 
 		this.logger = new Logger(this.config);
+		this.hijacker = new Hijacker(this.logger);
 
 		if (configuration.autoRun === true) {
 			setImmediate(() => {
@@ -50,8 +54,10 @@ class Petzl {
 	}
 
 	private applyConfiguration = (action: ConfigureAction) => {
+		this.hijacker.resetGlobalLog();
 		this.config = Object.assign(this.config, action.configuration);
 		this.logger = new Logger(this.config);
+		this.hijacker = new Hijacker(this.logger);
 	};
 
 	private context = {
@@ -92,12 +98,12 @@ class Petzl {
 		}
 	};
 
-	private runHook = async (hookName: keyof Hooks) => {
-		this.logger.hijackConsoleLogs();
+	private runHook = async (hookName: keyof Hooks, testName: string) => {
+		this.hijacker.hijackConsoleLogs();
 
 		await this.hooks[hookName]();
 
-		this.logger.releaseHookLog(hookName);
+		this.hijacker.releaseHookLog(hookName, testName);
 	};
 
 	public beforeEach = (cb: AnyCB) => {
@@ -161,11 +167,11 @@ class Petzl {
 	): Promise<void> => {
 		const { title, cb, args } = action;
 
-		const { context, logger, runHook } = this;
+		const { context, logger, hijacker, runHook } = this;
 
-		await runHook("beforeEach");
+		await runHook("beforeEach", title);
 
-		logger.hijackConsoleLogs();
+		hijacker.hijackConsoleLogs();
 
 		const clock = new Clock();
 
@@ -175,20 +181,18 @@ class Petzl {
 			// Pass
 			const runtime = clock.calc();
 
-			logger.pass(title, runtime);
+			logger.pass(title, runtime, hijacker.capturedLogs);
 
 			context.passed += 1;
 
 			if (runtime > 0) {
 				context.totalRuntime += runtime;
 			}
-
-			logger.releaseTestLog();
 		} catch (err) {
 			// Fail
 			const runtime = clock.calc();
 
-			logger.fail(title, runtime);
+			logger.fail(title, runtime, hijacker.capturedLogs);
 
 			context.failed += 1;
 
@@ -197,10 +201,9 @@ class Petzl {
 			if (runtime > 0) {
 				context.totalRuntime += runtime;
 			}
-
-			logger.releaseTestLog();
 		} finally {
-			await runHook("afterEach");
+			hijacker.releaseTestLog();
+			await runHook("afterEach", title);
 		}
 	};
 

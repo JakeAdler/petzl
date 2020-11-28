@@ -69,6 +69,32 @@ For TypeScript, replace `node` with `ts-node`:
 }
 ```
 
+### API
+
+#### describe(title, fn)
+
+`describe` creates a block that groups related tests. It also provides a new hooks context in the callback function.
+
+**Example**
+
+```js
+import { it } from "petzl";
+import assert from "assert";
+
+// adds 2 numbers together
+const add = (a, b) => a + b;
+
+describe("add", () => {
+	it("should add positive integers", () => {
+		assert.strictEqual(add(1, 1), 2);
+	});
+
+	it("should add negative integers", () => {
+		assert.strictEqual(add(-1, -1), -2);
+	});
+});
+```
+
 ### Basic example
 
 ```js
@@ -77,11 +103,9 @@ For TypeScript, replace `node` with `ts-node`:
 import { it } from "petzl";
 import assert from "assert";
 
-export default async () => {
-	await it("1 + 1 = 2", () => {
-		assert(1 + 1 === 2);
-	});
-};
+it("1 + 1 = 2", () => {
+	assert(1 + 1 === 2);
+});
 ```
 
 ##### Run your tests
