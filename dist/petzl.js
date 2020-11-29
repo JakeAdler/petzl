@@ -12,179 +12,175 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const chalk_1 = __importDefault(require("chalk"));
-const perf_hooks_1 = require("perf_hooks");
 const logger_1 = __importDefault(require("./logger"));
+const hijacker_1 = __importDefault(require("./hijacker"));
 const summarize_1 = __importDefault(require("./summarize"));
+const utils_1 = require("./utils");
 const types_1 = require("./types");
 const defaultConfiguration = {
     logger: console,
-    autoReport: true,
     colors: true,
     format: true,
     symbols: true,
+    autoRun: true,
+    bubbleHooks: false,
+    volume: 3,
 };
-class Clock {
-    constructor() {
-        this.startTime = 0;
-        this.endTime = 0;
-        this.start = () => {
-            this.startTime = perf_hooks_1.performance.now();
-        };
-        this.stop = () => {
-            this.endTime = perf_hooks_1.performance.now();
-        };
-        this.calc = () => {
-            return Math.round(Math.abs(this.endTime - this.startTime));
-        };
-    }
-}
 class Petzl {
     constructor(configuration) {
+        this.applyConfiguration = (action) => {
+            this.hijacker.resetGlobalLog();
+            this.config = Object.assign(this.config, action.configuration);
+            this.logger = new logger_1.default(this.config);
+            this.hijacker = new hijacker_1.default(this.logger);
+        };
         this.context = {
             passed: 0,
             failed: 0,
             totalRuntime: 0,
             errors: [],
         };
-        this.pass = (title, clock) => {
-            clock.stop();
-            const runtime = clock.calc();
-            this.logger.log(this.logger.colors.green("PASSED: "), title, this.logger.colors.green(`(${runtime}ms)`));
-            this.context.passed += 1;
-            if (runtime > 0) {
-                this.context.totalRuntime += runtime;
-            }
-            this.logger.releaseConsoleLogs();
+        // Hooks
+        this.hooks = {
+            beforeEach: () => { },
+            afterEach: () => { },
         };
-        this.fail = (title, clock, error) => {
-            clock.stop();
-            const runtime = clock.calc();
-            this.logger.log(this.logger.colors.red("FAILED: "), title, this.logger.colors.red(`(${runtime}ms)`));
-            this.context.failed += 1;
-            this.context.errors.push([error, title]);
-            if (runtime > 0) {
-                this.context.totalRuntime += runtime;
-            }
-            this.logger.releaseConsoleLogs();
+        this.hooksCache = [];
+        this.useCachedHooks = () => {
+            this.hooks = Object.assign(this.hooks, this.hooksCache.pop());
         };
-        this.configure = (options) => {
-            this.config = Object.assign(this.config, options);
-            this.logger = new logger_1.default(this.config);
-        };
-        this.explode = (message) => {
-            throw new types_1.Explosion(message);
-        };
-        this.canItBeRun = true;
-        this.it = (title, cb, ...args) => {
-            if (!this.canItBeRun) {
-                throw new types_1.NestedTestError(`\n Cannot nest ${this.logger.colors.bold("it")} blocks \n`);
-            }
-            this.canItBeRun = false;
-            const clock = new Clock();
-            const formattedTitle = this.logger.formatTitle(title, ...args);
-            const pass = () => {
-                this.pass(formattedTitle, clock);
-                this.canItBeRun = true;
+        this.pushHookToQueue = (hookName, cb) => {
+            const action = {
+                type: "hook",
+                cb: () => {
+                    this.hooks[hookName] = cb;
+                },
             };
-            const fail = (err) => {
-                this.fail(formattedTitle, clock, err);
-                this.canItBeRun = true;
-            };
-            const handleError = (err) => {
-                if (err instanceof types_1.Explosion) {
-                    throw { __explosion: true, message: err.message, err };
+            this.queue.push(action);
+        };
+        this.cacheAndResetHooks = () => {
+            this.hooksCache.push(Object.assign({}, this.hooks));
+            if (this.config.bubbleHooks !== true) {
+                for (const hook in this.hooks) {
+                    this.hooks[hook] = () => { };
                 }
-                else {
-                    fail(err);
+            }
+        };
+        this.runHook = (hookName, testName) => __awaiter(this, void 0, void 0, function* () {
+            this.hijacker.hijackConsoleLogs();
+            yield this.hooks[hookName]();
+            this.hijacker.releaseHookLog(hookName, testName);
+        });
+        this.beforeEach = (cb) => {
+            this.pushHookToQueue("beforeEach", cb);
+        };
+        this.afterEach = (cb) => {
+            this.pushHookToQueue("afterEach", cb);
+        };
+        // Queue
+        this.queue = [];
+        this.runQueue = () => __awaiter(this, void 0, void 0, function* () {
+            const { queue, evaluateTest, startGroup, stopGroup, applyConfiguration, } = this;
+            for (const action of queue) {
+                if (types_1.isHookAction(action)) {
+                    yield action.cb();
                 }
-            };
+                if (types_1.isItAction(action)) {
+                    yield evaluateTest(action);
+                }
+                if (types_1.isDescribeStartAction(action)) {
+                    yield startGroup(action);
+                }
+                if (types_1.isDescribeEndAction(action)) {
+                    yield stopGroup();
+                }
+                if (types_1.isConfigurationAction(action)) {
+                    applyConfiguration(action);
+                }
+            }
+        });
+        this.startGroup = (group) => __awaiter(this, void 0, void 0, function* () {
+            const { logger, cacheAndResetHooks } = this;
+            logger.logGroupTitle(group.title);
+            cacheAndResetHooks();
+        });
+        this.stopGroup = () => __awaiter(this, void 0, void 0, function* () {
+            const { logger, useCachedHooks } = this;
+            logger.subtractPadding();
+            useCachedHooks();
+        });
+        this.evaluateTest = (action) => __awaiter(this, void 0, void 0, function* () {
+            const { title, cb, args } = action;
+            const { context, logger, hijacker, runHook } = this;
+            yield runHook("beforeEach", title);
+            hijacker.hijackConsoleLogs();
+            const clock = new utils_1.Clock();
+            let didPass;
             try {
-                this.logger.hijackConsoleLogs();
-                clock.start();
-                const possiblePromise = cb(...args);
-                if (possiblePromise instanceof Promise) {
-                    // Resolve promise cb
-                    return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-                        try {
-                            yield possiblePromise;
-                            pass();
-                        }
-                        catch (err) {
-                            handleError(err);
-                        }
-                        finally {
-                            resolve();
-                        }
-                    }));
+                yield cb(...args);
+                // Pass
+                const runtime = clock.calc();
+                logger.pass(title, runtime);
+                context.passed += 1;
+                if (runtime > 0) {
+                    context.totalRuntime += runtime;
                 }
-                else {
-                    // Resolve sync cb
-                    pass();
-                }
+                didPass = true;
             }
             catch (err) {
-                handleError(err);
-            }
-        };
-        this.describe = (title, cb, ...args) => {
-            const formattedTitle = this.logger.formatTitle(title, ...args);
-            this.logger.log(chalk_1.default.underline.bold(formattedTitle));
-            this.logger.addPadding();
-            let isPromise = false;
-            try {
-                const promise = cb(...args);
-                if (promise instanceof Promise) {
-                    isPromise = true;
-                    return new Promise((resolve) => __awaiter(this, void 0, void 0, function* () {
-                        try {
-                            yield promise;
-                        }
-                        finally {
-                            this.logger.subtractPadding();
-                            resolve();
-                        }
-                    }));
+                // Fail
+                const runtime = clock.calc();
+                logger.fail(title, runtime);
+                context.failed += 1;
+                context.errors.push([err, title]);
+                if (runtime > 0) {
+                    context.totalRuntime += runtime;
                 }
+                didPass = false;
             }
             finally {
-                if (!isPromise) {
-                    this.logger.subtractPadding();
-                }
+                hijacker.releaseTestLog(title, didPass);
+                yield runHook("afterEach", title);
             }
+        });
+        this.configure = (options) => {
+            const configureAction = {
+                type: "configure",
+                configuration: options,
+            };
+            this.queue.push(configureAction);
         };
-        configuration = Object.assign({}, configuration, defaultConfiguration);
-        const { logger, autoReport, colors, format, symbols } = configuration;
+        this.it = (title, cb, ...args) => {
+            const action = {
+                type: "it",
+                title: utils_1.formatTitle(title, ...args),
+                cb,
+                args,
+            };
+            this.queue.push(action);
+        };
+        this.describe = (title, cb, ...args) => {
+            const startAction = {
+                type: "describe-start",
+                title: utils_1.formatTitle(title, ...args),
+            };
+            this.queue.push(startAction);
+            cb(...args);
+            const endAction = {
+                type: "describe-end",
+            };
+            this.queue.push(endAction);
+        };
+        configuration = Object.assign({}, defaultConfiguration, configuration);
         this.config = configuration;
-        this.logger = new logger_1.default({ logger, colors, format, symbols });
-        process.on("unhandledRejection", (reason) => {
-            if (reason["__explosion"]) {
-                this.logger.log(this.logger.colors.red(`\nExplosion: ${reason["message"]}\n`));
-                this.logger.log(reason["err"], "\n");
-            }
-            else {
-                this.logger.log(this.logger.colors.red("\nFatal: unhandled rejection\n"));
-                this.logger.log(reason, "\n");
-            }
-            process.exit(1);
-        });
-        process.on("uncaughtException", (error) => {
-            this.logger.log(this.logger.colors.red("\nFatal: uncaught exception\n"));
-            this.logger.log(error, "\n");
-            process.exit(1);
-        });
-        process.on("beforeExit", (code) => __awaiter(this, void 0, void 0, function* () {
-            if (!code) {
-                const main = require(process.argv[1]).default;
-                yield main();
-            }
-            process.exit();
-        }));
-        if (autoReport !== false) {
-            process.on("exit", (code) => {
-                if (code === 0) {
-                    summarize_1.default(this.logger, this.context, configuration);
-                }
+        this.logger = new logger_1.default(this.config);
+        this.hijacker = new hijacker_1.default(this.logger);
+        if (configuration.autoRun === true) {
+            setImmediate(() => {
+                require(process.argv[1]);
+                this.runQueue().then(() => {
+                    summarize_1.default(this.logger, this.context, this.config);
+                });
             });
         }
     }

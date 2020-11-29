@@ -22,6 +22,7 @@ export interface Configuration {
 	format?: boolean;
 	symbols?: boolean;
 	autoRun?: boolean;
+	bubbleHooks?: boolean;
 	volume?: number;
 }
 

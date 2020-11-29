@@ -27,6 +27,7 @@ const defaultConfiguration: Configuration = {
 	format: true,
 	symbols: true,
 	autoRun: true,
+	bubbleHooks: false,
 	volume: 3,
 };
 
@@ -93,8 +94,10 @@ class Petzl {
 	private cacheAndResetHooks = () => {
 		this.hooksCache.push({ ...this.hooks });
 
-		for (const hook in this.hooks) {
-			this.hooks[hook] = () => {};
+		if (this.config.bubbleHooks !== true) {
+			for (const hook in this.hooks) {
+				this.hooks[hook] = () => {};
+			}
 		}
 	};
 
@@ -175,24 +178,26 @@ class Petzl {
 
 		const clock = new Clock();
 
+		let didPass: boolean;
 		try {
 			await cb(...args);
 
 			// Pass
 			const runtime = clock.calc();
 
-			logger.pass(title, runtime, hijacker.capturedLogs);
+			logger.pass(title, runtime);
 
 			context.passed += 1;
 
 			if (runtime > 0) {
 				context.totalRuntime += runtime;
 			}
+			didPass = true;
 		} catch (err) {
 			// Fail
 			const runtime = clock.calc();
 
-			logger.fail(title, runtime, hijacker.capturedLogs);
+			logger.fail(title, runtime);
 
 			context.failed += 1;
 
@@ -201,8 +206,9 @@ class Petzl {
 			if (runtime > 0) {
 				context.totalRuntime += runtime;
 			}
+			didPass = false;
 		} finally {
-			hijacker.releaseTestLog();
+			hijacker.releaseTestLog(title, didPass);
 			await runHook("afterEach", title);
 		}
 	};

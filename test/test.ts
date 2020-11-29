@@ -1,5 +1,4 @@
 import { it, describe, beforeEach, afterEach, configure } from "../src";
-import { Worker } from "worker_threads";
 import assert from "assert";
 
 const timeout = () => new Promise((resolve) => setTimeout(resolve, 500));
@@ -7,7 +6,7 @@ const sleep = async () => {
 	await timeout();
 };
 
-
+configure({ bubbleHooks: false, volume: 1, colors: false });
 
 it("Non grouped test", async () => {
 	console.log("haha");
@@ -47,8 +46,6 @@ describe("Grouped tests", () => {
 	});
 	it("grouped test 3", () => {});
 });
-
-configure({ volume: 3 });
 
 describe("Macro style tests", () => {
 	let data = [23, 24, 25];

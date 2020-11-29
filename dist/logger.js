@@ -22,45 +22,42 @@ class Logger {
             this.padding = "";
         };
         this.log = (...args) => {
-            if (this.padding.length && this.format !== false) {
-                this.logFn(this.padding, ...args);
-            }
-            else {
-                this.logFn(...args);
-            }
-        };
-        this.formatTitle = (title, ...args) => {
-            if (typeof title === "function") {
-                title = title(...args);
-            }
-            return title.trim();
-        };
-        this.capturedLogs = [];
-        this.hijackConsoleLogs = () => {
-            global.console.log = (...args) => {
-                this.capturedLogs.push(...args);
-            };
-        };
-        this.releaseConsoleLogs = () => {
-            global.console.log = this.log;
-            if (this.capturedLogs.length) {
-                for (const message of this.capturedLogs) {
-                    if (this.symbols !== false) {
-                        this.log("* ", message);
-                    }
-                    else {
-                        this.log(message);
-                    }
+            if (this.volume >= 2) {
+                if (this.volume >= 3 &&
+                    this.padding.length &&
+                    this.format !== false) {
+                    const [paddedArg, ...rest] = args;
+                    this.logFn(`${this.padding}${paddedArg}`, ...rest);
+                }
+                else {
+                    this.logFn(...args);
                 }
             }
-            this.capturedLogs = [];
         };
-        const { logger, format, colors, symbols } = configuration;
+        this.pass = (title, runtime) => {
+            if (this.volume >= 3) {
+                this.log(this.colors.green("PASSED: "), title, this.colors.green(`(${runtime}ms)`));
+            }
+        };
+        this.fail = (title, runtime) => {
+            if (this.volume >= 3) {
+                this.log(this.colors.red("FAILED: "), title, this.colors.red(`(${runtime}ms)`));
+            }
+        };
+        this.logGroupTitle = (title) => {
+            if (this.volume >= 3) {
+                this.log(this.colors.bold(this.colors.underline(title)));
+            }
+            this.addPadding();
+        };
+        const { logger, format, colors, symbols, volume } = configuration;
         this.logFn = logger.log;
         this.format = format;
         this.symbols = symbols;
+        this.volume = volume;
         if (colors) {
             this.colors = {
+                underline: (...args) => chalk_1.default.underline(...args),
                 bold: (...args) => chalk_1.default.bold(...args),
                 red: (...args) => chalk_1.default.red(...args),
                 blue: (...args) => chalk_1.default.blue(...args),
@@ -71,6 +68,7 @@ class Logger {
         }
         else {
             this.colors = {
+                underline: (args) => args,
                 bold: (args) => args,
                 red: (args) => args,
                 blue: (args) => args,

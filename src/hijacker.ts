@@ -31,28 +31,29 @@ export default class Hijacker {
 	// Release logs captured by hooks
 	public releaseHookLog = (hookName: keyof Hooks, testName: string) => {
 		global.console.log = this.log;
-		if (this.volume >= 2) {
-			if (this.capturedLogs.length) {
-				this.log(this.colors.blue(`${hookName} (${testName}):`));
-				this.addPadding();
-				for (const message of this.capturedLogs) {
-					if (this.symbols !== false) {
-						this.log("- ", message);
-					} else {
-						this.log(message);
-					}
+		if (this.capturedLogs.length && this.volume >= 2) {
+			this.log(this.colors.blue(`${hookName} (${testName}):`));
+			this.addPadding();
+			for (const message of this.capturedLogs) {
+				if (this.symbols !== false) {
+					this.log("- ", message);
+				} else {
+					this.log(message);
 				}
-				this.subtractPadding();
 			}
+			this.subtractPadding();
 		}
 		this.capturedLogs = [];
 	};
 
 	// Release logs captured by test
-	public releaseTestLog = () => {
+	public releaseTestLog = (title: string, pass: boolean) => {
 		global.console.log = this.log;
 		if (this.volume >= 2) {
 			if (this.capturedLogs.length) {
+				if (this.volume === 2) {
+					this.log(this.colors[pass ? "green" : "red"](title));
+				}
 				for (const message of this.capturedLogs) {
 					if (this.symbols !== false) {
 						this.log("* ", message);

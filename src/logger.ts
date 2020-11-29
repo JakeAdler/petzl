@@ -59,58 +59,43 @@ export default class Logger {
 
 	log = (...args: any[]) => {
 		if (this.volume >= 2) {
-			if (this.volume >= 3) {
-				if (this.padding.length && this.format !== false) {
-					const [paddedArg, ...rest] = args;
-					this.logFn(`${this.padding}${paddedArg}`, ...rest);
-				} else {
-					this.logFn(...args);
-				}
+			if (
+				this.volume >= 3 &&
+				this.padding.length &&
+				this.format !== false
+			) {
+				const [paddedArg, ...rest] = args;
+				this.logFn(`${this.padding}${paddedArg}`, ...rest);
+			} else {
+				this.logFn(...args);
 			}
 		}
 	};
 
-	pass = (title: string, runtime: number, capturedLogs: any[]) => {
+	pass = (title: string, runtime: number) => {
 		if (this.volume >= 3) {
 			this.log(
 				this.colors.green("PASSED: "),
 				title,
 				this.colors.green(`(${runtime}ms)`)
 			);
-		} else {
-			if (capturedLogs.length) {
-				this.log(
-					this.colors.green("PASSED: "),
-					title,
-					this.colors.green(`(${runtime}ms)`)
-				);
-			}
 		}
 	};
 
-	fail = (title: string, runtime: number, capturedLogs: any[]) => {
+	fail = (title: string, runtime: number) => {
 		if (this.volume >= 3) {
 			this.log(
 				this.colors.red("FAILED: "),
 				title,
 				this.colors.red(`(${runtime}ms)`)
 			);
-		} else {
-			if (capturedLogs.length) {
-				this.log(
-					this.colors.red("FAILED: "),
-					title,
-					this.colors.red(`(${runtime}ms)`)
-				);
-			}
 		}
 	};
 
 	logGroupTitle = (title: string) => {
 		if (this.volume >= 3) {
 			this.log(this.colors.bold(this.colors.underline(title)));
-			this.addPadding();
 		}
+		this.addPadding();
 	};
-
 }

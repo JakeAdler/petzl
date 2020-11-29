@@ -4,21 +4,9 @@ const util_1 = require("util");
 const assert_1 = require("assert");
 const table_1 = require("table");
 const summarize = (logger, context, configuration) => {
-    const { flushPadding, log, colors } = logger;
+    const { flushPadding, logFn: log, colors } = logger;
     const { errors } = context;
     flushPadding();
-    let equalSeperator = "";
-    let dashSeperator = "";
-    if (configuration.symbols !== false) {
-        for (let i = 0; i < process.stdout.columns; i++) {
-            equalSeperator += "=";
-            dashSeperator += "-";
-        }
-    }
-    else {
-        equalSeperator = "\n";
-        dashSeperator = "\n";
-    }
     if (errors.length) {
         log("\n");
         for (let i = 0; i < errors.length; i++) {
@@ -40,13 +28,11 @@ const summarize = (logger, context, configuration) => {
             else {
                 log(error);
             }
-            if (i !== errors.length - 1) {
-                log(colors.grey(dashSeperator));
-            }
-            else {
-                log("\n");
-            }
+            log("\n");
         }
+    }
+    else {
+        log("\n");
     }
     const passed = [
         colors.green(colors.bold(`Passed`)),
@@ -60,14 +46,19 @@ const summarize = (logger, context, configuration) => {
         colors.blue(colors.bold(`Runtime`)),
         colors.blue(`${context.totalRuntime}ms`),
     ];
-    const endReport = [passed, faied, runtime];
+    const processRuntime = [
+        colors.blue(colors.bold(`Process Runtime`)),
+        colors.blue(`${process.uptime().toFixed(1)}s`),
+    ];
+    const endReport = [passed, faied, runtime, processRuntime];
     if (configuration.symbols) {
-        log(table_1.table(endReport));
+        log(table_1.table(endReport, { border: table_1.getBorderCharacters("norc") }));
     }
     else {
         log(...passed);
         log(...faied);
         log(...runtime);
+        log(...processRuntime);
     }
 };
 exports.default = summarize;
