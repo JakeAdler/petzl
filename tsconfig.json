@@ -1,21 +1,14 @@
 {
-  "compilerOptions": {
-    "target": "ES6",
-    "module": "CommonJS",
-    "allowJs": true,
-    "outDir": "./dist",
-    "declaration": true,
-    "rootDir": "./src",
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
-  },
-  "include": [
-    "src/**/*.ts"
-  ],
-  "exclude": [
-    "/node_modules/"
-  ]
+	"compilerOptions": {
+		"target": "ES5",
+		"module": "CommonJS",
+		"declaration": true,
+		"rootDir": "./src",
+		"outDir": "./dist",
+		"outFile": "./dist/petzl.js",
+		"esModuleInterop": true,
+		"sourceMap": true
+	},
+	"include": ["src/**/*.ts"],
+	"exclude": ["/node_modules/"]
 }

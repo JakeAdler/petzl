@@ -1,21 +1,20 @@
 {
 	"name": "petzl",
-	"version": "1.0.7",
-	"description": " A minimal asynchronous testing harness. ",
+	"version": "1.1.0",
+	"description": " A lightweight testing harness for Node.js applications.",
 	"bin": {
 		"petzl": "petzl.js"
 	},
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
+		"test": "./petzl.js",
 		"prepublish": "tsc"
 	},
 	"keywords": [],
 	"author": "Jake Adler",
 	"license": "ISC",
 	"dependencies": {
-		"chalk": "^4.1.0",
 		"table": "^6.0.4",
 		"ts-node": "^9.0.0"
 	},

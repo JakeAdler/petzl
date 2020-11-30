@@ -1,12 +1,17 @@
-import { it, describe, beforeEach, afterEach, configure } from "../src";
+import {
+	it,
+	describe,
+	beforeEach,
+	afterEach,
+	doOnce,
+	configure,
+} from "../dist";
 import assert from "assert";
 
-const timeout = () => new Promise((resolve) => setTimeout(resolve, 500));
+const timeout = () => new Promise((resolve) => setTimeout(resolve, 1000));
 const sleep = async () => {
 	await timeout();
 };
-
-configure({ bubbleHooks: false, volume: 1, colors: false });
 
 it("Non grouped test", async () => {
 	console.log("haha");
@@ -16,6 +21,7 @@ it("Ton of assertions", async () => {
 	console.log("GOODNIGHT");
 	await sleep();
 	console.log("HAH");
+	/* store.set("someKey", "someVal"); */
 	console.log("Will have multiple failures");
 	assert.strictEqual(1, 2);
 	assert.strictEqual(1, 3);
@@ -26,7 +32,8 @@ it("Non grouped test", async () => {
 });
 
 describe("Grouped tests", () => {
-	beforeEach(() => {
+	beforeEach(async () => {
+		await sleep();
 		console.log("HELLO");
 	});
 	afterEach(() => {
@@ -40,6 +47,10 @@ describe("Grouped tests", () => {
 	});
 	describe("YO", () => {
 		it("NESTED", () => {});
+		doOnce(async () => {
+			await sleep();
+			console.log("WOOOOWW");
+		});
 		it("NESTED", () => {});
 		it("NESTED", () => {});
 		it("NESTED", () => {});
@@ -58,7 +69,9 @@ describe("Macro style tests", () => {
 	}
 });
 
-it("last tests", () => {});
+it("last tests", () => {
+	/* console.log(store.get("someKey")); */
+});
 it("last tests", () => {});
 it("last tests", () => {});
 /* await describe("nested groups", async () => { */

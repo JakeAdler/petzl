@@ -1,5 +1,5 @@
-import chalk from "chalk";
 import { LogFn, Colors, Configuration } from "./types";
+import { createColors } from "./utils";
 
 export default class Logger {
 	logFn: LogFn;
@@ -9,34 +9,20 @@ export default class Logger {
 	volume: number;
 
 	constructor(configuration: Configuration) {
-		const { logger, format, colors, symbols, volume } = configuration;
+		const { colors, volume, dev } = configuration;
 
-		this.logFn = logger.log;
-		this.format = format;
-		this.symbols = symbols;
-		this.volume = volume;
-
-		if (colors) {
-			this.colors = {
-				underline: (...args) => chalk.underline(...args),
-				bold: (...args) => chalk.bold(...args),
-				red: (...args) => chalk.red(...args),
-				blue: (...args) => chalk.blue(...args),
-				green: (...args) => chalk.green(...args),
-				magenta: (...args) => chalk.magenta(...args),
-				grey: (...args) => chalk.grey(...args),
-			};
+		if (dev) {
+			this.logFn = dev.logger.log;
+			this.format = dev.format;
+			this.symbols = dev.symbols;
 		} else {
-			this.colors = {
-				underline: (args) => args,
-				bold: (args) => args,
-				red: (args) => args,
-				blue: (args) => args,
-				green: (args) => args,
-				magenta: (args) => args,
-				grey: (args) => args,
-			};
+			this.logFn = console.log;
+			this.format = true;
+			this.symbols = true;
 		}
+
+		this.volume = volume;
+		this.colors = createColors(colors);
 	}
 
 	private padding = "";

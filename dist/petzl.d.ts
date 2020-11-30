@@ -1,26 +1,16 @@
-import { AnyCB, Configuration, Title, TestCB } from "./types";
+import { AnyVoidCB, Configuration, Title, TestCB, AnyCB } from "./types";
+import Runner from "./runner";
 declare class Petzl {
-    private logger;
-    private hijacker;
     private config;
-    constructor(configuration?: Configuration);
-    private applyConfiguration;
-    private context;
-    private hooks;
-    private hooksCache;
-    private useCachedHooks;
-    private pushHookToQueue;
-    private cacheAndResetHooks;
-    private runHook;
-    beforeEach: (cb: AnyCB) => void;
-    afterEach: (cb: AnyCB) => void;
     private queue;
-    private runQueue;
-    private startGroup;
-    private stopGroup;
-    private evaluateTest;
-    configure: (options: Partial<Configuration>) => void;
+    runner: Runner;
+    constructor(configuration?: Configuration);
+    beforeEach: (cb: AnyVoidCB) => void;
+    afterEach: (cb: AnyVoidCB) => void;
+    doOnce: (cb: AnyCB) => void;
+    configure: (options: Omit<Configuration, "autoRun">) => void;
     it: <T extends any[]>(title: Title<T>, cb: TestCB<T>, ...args: T) => void;
     describe: <T extends any[]>(title: Title<T>, cb: (...args: T) => void, ...args: T) => void;
 }
-export default Petzl;
+declare const it: <T extends any[]>(title: Title<T>, cb: TestCB<T>, ...args: T) => void, describe: <T extends any[]>(title: Title<T>, cb: (...args: T) => void, ...args: T) => void, beforeEach: (cb: AnyVoidCB) => void, afterEach: (cb: AnyVoidCB) => void, doOnce: (cb: AnyCB) => void, configure: (options: Omit<Configuration, "autoRun">) => void, runner: Runner;
+export { it, describe, beforeEach, afterEach, doOnce, configure, runner, Petzl, };

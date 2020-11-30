@@ -11,7 +11,7 @@ const summarize = (
 ) => {
 	const { flushPadding, logFn: log, colors } = logger;
 	const { errors } = context;
-	
+
 	flushPadding();
 
 	if (errors.length) {
@@ -48,28 +48,28 @@ const summarize = (
 	}
 	const passed = [
 		colors.green(colors.bold(`Passed`)),
-		colors.green(context.passed),
+		colors.green(context.passed.toString()),
 	];
 	const faied = [
 		colors.red(colors.bold(`Failed`)),
-		colors.red(context.failed),
+		colors.red(context.failed.toString()),
 	];
 	const runtime = [
 		colors.blue(colors.bold(`Runtime`)),
-		colors.blue(`${context.totalRuntime}ms`),
+		colors.blue(`${context.testRuntime}ms`),
 	];
 	const processRuntime = [
 		colors.blue(colors.bold(`Process Runtime`)),
 		colors.blue(`${process.uptime().toFixed(1)}s`),
 	];
-	const endReport = [passed, faied, runtime, processRuntime];
-	if (configuration.symbols) {
-		log(table(endReport, { border: getBorderCharacters("norc") }));
-	} else {
+	const endReport: string[][] = [passed, faied, runtime, processRuntime];
+	if (configuration.dev && configuration.dev.symbols === false) {
 		log(...passed);
 		log(...faied);
 		log(...runtime);
 		log(...processRuntime);
+	} else {
+		log(table(endReport, { border: getBorderCharacters("norc") }));
 	}
 };
 

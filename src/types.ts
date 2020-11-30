@@ -1,38 +1,75 @@
-export type AnyCB = () => Promise<void> | void;
+import Runner from "./runner";
 
-export type TestCB<T extends any[]> = (...macroArgs: T) => Promise<void> | void;
+type AnyVoid = Promise<void> | void;
+
+export type AnyVoidCB = () => AnyVoid;
+
+export type AnyCB = () => Promise<any> | any;
+
+export type TestCB<T extends any[]> = (...macroArgs: T) => AnyVoid;
 
 export type LogFn = (...args: any[]) => void;
+export type ColorFn = (...args: any[]) => string;
 
 export type Title<T extends any[]> = string | ((...args: Partial<T>) => string);
 
 export interface Colors {
-	underline: LogFn;
-	red: LogFn;
-	green: LogFn;
-	blue: LogFn;
-	bold: LogFn;
-	magenta: LogFn;
-	grey: LogFn;
+	underline: ColorFn;
+	red: ColorFn;
+	green: ColorFn;
+	blue: ColorFn;
+	bold: ColorFn;
+	magenta: ColorFn;
+	grey: ColorFn;
+}
+
+export interface DevConfiguration {
+	logger?: Pick<Console, "log">;
+	format?: boolean;
+	symbols?: boolean;
+}
+
+export interface RunnerConfiguration {
+	use: keyof Runner;
+}
+
+export interface SequencerConfiguration extends RunnerConfiguration {
+	use: "sequencer";
+	include: string[];
+	exclude?: string[];
+}
+
+export interface MatchExtensionsConfiguration extends RunnerConfiguration {
+	use: "matchExtensions";
+	match: string[];
+	root: string;
+}
+
+export interface EntryPointConfiguration extends RunnerConfiguration {
+	use: "entryPoint";
 }
 
 export interface Configuration {
-	logger?: Pick<Console, "log">;
+	runner?: RunnerConfiguration;
 	colors?: boolean;
-	format?: boolean;
-	symbols?: boolean;
-	autoRun?: boolean;
 	bubbleHooks?: boolean;
 	volume?: number;
+	dev?: false | DevConfiguration;
 }
 
 export interface Action {
-	type: "it" | "describe-start" | "describe-end" | "hook" | "configure";
+	type:
+		| "it"
+		| "describe-start"
+		| "describe-end"
+		| "doOnce"
+		| "hook"
+		| "configure";
 }
 
 export interface HookAction extends Action {
 	type: "hook";
-	cb: AnyCB;
+	cb: AnyVoidCB;
 }
 
 export interface ItAction<T extends any[]> extends Action {
@@ -56,19 +93,30 @@ export interface ConfigureAction extends Action {
 	configuration: Partial<Configuration>;
 }
 
+export interface DoOnceAction extends Action {
+	type: "doOnce";
+	cb: AnyCB;
+}
+
 export interface Hooks {
-	beforeEach: AnyCB;
-	afterEach: AnyCB;
+	beforeEach: AnyVoidCB;
+	afterEach: AnyVoidCB;
 }
 
 export interface Context {
 	passed: number;
 	failed: number;
-	totalRuntime: number;
+	testRuntime: number;
 	errors: any[];
 }
+// Errors
 
-export class NestedTestError extends Error {}
+export class ConfigError extends Error {
+	constructor(optionName: string, message: string) {
+		super(`Option '${optionName}': ${message}`);
+		this.name = "Config Error";
+	}
+}
 
 // Guards
 
@@ -98,4 +146,26 @@ export const isConfigurationAction = (
 	action: Action
 ): action is ConfigureAction => {
 	return action.type === "configure";
+};
+
+export const isDoOnceAction = (action: Action): action is DoOnceAction => {
+	return action.type === "doOnce";
+};
+
+export const isEntryPointConfig = (
+	config: RunnerConfiguration
+): config is EntryPointConfiguration => {
+	return config.use === "entryPoint";
+};
+
+export const isMatchExtensionsConfig = (
+	config: RunnerConfiguration
+): config is MatchExtensionsConfiguration => {
+	return config.use === "matchExtensions";
+};
+
+export const isSequencerConfig = (
+	config: RunnerConfiguration
+): config is SequencerConfiguration => {
+	return config.use === "sequencer";
 };
