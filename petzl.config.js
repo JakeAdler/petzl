@@ -1,6 +1,6 @@
 module.exports = {
 	runner: {
-		use: "sequencer",
-		include: ["test/test.ts", "test/nested/"],
+		use: "entryPoint",
+		// include: ["test/test.ts", "test/nested/"],
 	},
 };

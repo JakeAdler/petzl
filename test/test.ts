@@ -41,7 +41,6 @@ describe("Grouped tests", () => {
 	});
 
 	it("grouped test 1", () => {});
-
 	it("grouped test 2", () => {
 		console.log("inside second grouped test");
 	});
@@ -55,7 +54,12 @@ describe("Grouped tests", () => {
 		it("NESTED", () => {});
 		it("NESTED", () => {});
 	});
+	beforeEach(() => {
+		assert.ok()
+		console.log("DIFFRENT HOOK NOW");
+	});
 	it("grouped test 3", () => {});
+	it("grouped test 4", () => {});
 });
 
 describe("Macro style tests", () => {

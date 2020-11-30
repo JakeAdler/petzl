@@ -1,4 +1,4 @@
-import { it, describe } from "../dist";
+import { it, describe, configure, beforeEach } from "../dist";
 import assert from "assert";
 
 /* let testPetzlLogs = []; */
@@ -34,11 +34,28 @@ import assert from "assert";
 /* 		assert.strictEqual(typeof testPetzlLogs[1][2], "string"); */
 /* 	}); */
 /* }); */
+configure({ bubbleHooks: true });
+
 it("WOW", () => {});
 
-describe("FROM ANOTHER FILE", () => {
+describe("level 1", () => {
+	beforeEach(() => {
+		console.log(1);
+	});
 	it("WOW", () => {});
 	it("WOW", () => {});
+	it("WOW", () => {});
+	describe("level 2", () => {
+		beforeEach(() => {
+			console.log(2);
+		});
+		it("BOO", () => {});
+		it("BOO", () => {});
+		describe("level 3", () => {
+			it("YEE", () => {});
+			it("YEE", () => {});
+		});
+	});
 	it("WOW", () => {});
 	it("WOW", () => {});
 	it("WOW", () => {});
