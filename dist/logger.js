@@ -59,13 +59,21 @@ var Logger = /** @class */ (function () {
             }
             _this.addPadding();
         };
+        this.logTestFileName = function (fileName) {
+            if (_this.volume >= 3) {
+                var shortPath = fileName.replace(process.cwd(), "");
+                _this.logFn(_this.colors.bold(_this.colors.underline(shortPath)));
+            }
+        };
         var colors = configuration.colors, volume = configuration.volume, dev = configuration.dev;
         if (dev) {
+            this.dev = true;
             this.logFn = dev.logger.log;
             this.format = dev.format;
             this.symbols = dev.symbols;
         }
         else {
+            this.dev = false;
             this.logFn = console.log;
             this.format = true;
             this.symbols = true;

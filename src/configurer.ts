@@ -18,6 +18,7 @@ export default class Configurer {
 			this.findConfig();
 		}
 	}
+
 	private defaultConfiguration: Configuration = {
 		runner: {
 			use: "entryPoint",
@@ -33,12 +34,12 @@ export default class Configurer {
 			this.validateConfig(options);
 			this.config = Object.assign({}, this.defaultConfiguration, options);
 		} else {
-			this.config = Object.assign({}, this.defaultConfiguration);
+			this.config = this.defaultConfiguration;
 		}
 	};
 
 	private findConfig = () => {
-		const pathToConfig = path.join(process.cwd(), "petzl.config.js");
+		const pathToConfig = path.join(process.env["PWD"], "petzl.config.js");
 		const configExists = fs.existsSync(pathToConfig);
 		if (configExists) {
 			const userConfigFile = require(pathToConfig);
@@ -124,7 +125,6 @@ export default class Configurer {
 					});
 				}
 			}
-
 		}
 	};
 }

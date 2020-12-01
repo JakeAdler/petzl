@@ -7,6 +7,7 @@ var fs_1 = __importDefault(require("fs"));
 var path_1 = __importDefault(require("path"));
 var ts_node_1 = require("ts-node");
 var types_1 = require("./types");
+var logger_1 = __importDefault(require("./logger"));
 ts_node_1.register({
     files: true,
 });
@@ -26,14 +27,27 @@ var Runner = /** @class */ (function () {
             });
             return arrayOfFiles;
         };
+        this.joinPathAndRoot = function (input, root) {
+            if (root) {
+                return path_1.default.join(root, input);
+            }
+            else {
+                return input;
+            }
+        };
         this.readDirWithMatcher = function (dir, matchers) {
             var allFiles = _this.getAllFiles(dir);
             return allFiles.filter(function (fileName) {
-                for (var _i = 0, matchers_1 = matchers; _i < matchers_1.length; _i++) {
-                    var extension = matchers_1[_i];
-                    if (fileName.endsWith(extension)) {
-                        return fileName;
+                if (matchers) {
+                    for (var _i = 0, matchers_1 = matchers; _i < matchers_1.length; _i++) {
+                        var extension = matchers_1[_i];
+                        if (fileName.endsWith(extension)) {
+                            return fileName;
+                        }
                     }
+                }
+                else {
+                    return fileName;
                 }
             });
         };
@@ -48,18 +62,74 @@ var Runner = /** @class */ (function () {
                 }
             });
         };
+        this.runList = function (paths) {
+            for (var _i = 0, paths_1 = paths; _i < paths_1.length; _i++) {
+                var file = paths_1[_i];
+                require(file);
+            }
+            _this.queue.run();
+        };
         this.entryPoint = function (config) {
-            var fileArg = process.argv[2];
-            if (fileArg) {
-                fs_1.default.realpath(fileArg, function (err, realPath) {
-                    if (err) {
-                        throw new Error(fileArg + " is not a valid path");
+            var root = config.root;
+            var cliInput = process.argv[2];
+            var pathWithRoot = _this.joinPathAndRoot(cliInput, root);
+            if (cliInput) {
+                var isDir = void 0;
+                var isFile = void 0;
+                try {
+                    var fileArgStat = fs_1.default.statSync(pathWithRoot);
+                    isDir = fileArgStat.isDirectory();
+                    isFile = fileArgStat.isFile();
+                }
+                catch (_a) { }
+                if (isFile) {
+                    // Run file
+                    var filePath = fs_1.default.realpathSync(pathWithRoot);
+                    var realPath = _this.getRealPaths([filePath]);
+                    _this.runList(realPath);
+                }
+                else if (isDir) {
+                    // Run directory
+                    var allFilesInDir = _this.getAllFiles(pathWithRoot);
+                    var realPaths = _this.getRealPaths(allFilesInDir);
+                    _this.runList(realPaths);
+                }
+                else if (root) {
+                    // Match regex
+                    var chars_1 = cliInput.split("");
+                    var regexStr = chars_1.reduce(function (prev, acc, i) {
+                        if (i === chars_1.length - 1) {
+                            prev += acc;
+                        }
+                        else {
+                            prev += acc + ".*";
+                        }
+                        return prev;
+                    }, "");
+                    var regex_1 = new RegExp(regexStr);
+                    var allFiles = _this.getAllFiles(root);
+                    var matchingFiles = allFiles.filter(function (fileName) {
+                        var matches = fileName.match(regex_1);
+                        if (matches && matches.length) {
+                            return fileName;
+                        }
+                    });
+                    var realPaths = _this.getRealPaths(matchingFiles);
+                    var _loop_1 = function (file) {
+                        _this.queue.pushAction({
+                            type: "doOnce",
+                            cb: function () {
+                                _this.logger.logTestFileName(file);
+                            },
+                        });
+                        require(file);
+                    };
+                    for (var _i = 0, realPaths_1 = realPaths; _i < realPaths_1.length; _i++) {
+                        var file = realPaths_1[_i];
+                        _loop_1(file);
                     }
-                    else {
-                        require(realPath);
-                        _this.queue.run();
-                    }
-                });
+                    _this.queue.run();
+                }
             }
             else {
                 throw new Error("Must provide entry point as command line argument for the entryPoint runner");
@@ -69,8 +139,9 @@ var Runner = /** @class */ (function () {
             var match = config.match, root = config.root;
             var allPaths = _this.readDirWithMatcher(root, match);
             var realPaths = _this.getRealPaths(allPaths);
-            for (var _i = 0, realPaths_1 = realPaths; _i < realPaths_1.length; _i++) {
-                var file = realPaths_1[_i];
+            for (var _i = 0, realPaths_2 = realPaths; _i < realPaths_2.length; _i++) {
+                var file = realPaths_2[_i];
+                _this.logger.logTestFileName(file);
                 require(file);
             }
             _this.queue.run();
@@ -110,8 +181,8 @@ var Runner = /** @class */ (function () {
                 }
             }
             var realPaths = _this.getRealPaths(allSequencedFiles);
-            for (var _c = 0, realPaths_2 = realPaths; _c < realPaths_2.length; _c++) {
-                var file = realPaths_2[_c];
+            for (var _c = 0, realPaths_3 = realPaths; _c < realPaths_3.length; _c++) {
+                var file = realPaths_3[_c];
                 require(file);
             }
             _this.queue.run();
@@ -134,6 +205,7 @@ var Runner = /** @class */ (function () {
         };
         this.queue = queue;
         this.config = config;
+        this.logger = new logger_1.default(config);
     }
     return Runner;
 }());

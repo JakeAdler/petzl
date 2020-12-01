@@ -1,10 +1,10 @@
 import Logger from "./logger";
-import { Colors, Hooks, LogFn } from "./types";
+import { Hooks, LogFn } from "./types";
 export default class Hijacker {
     symbols: boolean;
     logFn: LogFn;
     log: LogFn;
-    colors: Colors;
+    colors: Logger["colors"];
     volume: number;
     addPadding: () => void;
     subtractPadding: () => void;

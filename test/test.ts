@@ -55,7 +55,6 @@ describe("Grouped tests", () => {
 		it("NESTED", () => {});
 	});
 	beforeEach(() => {
-		assert.ok()
 		console.log("DIFFRENT HOOK NOW");
 	});
 	it("grouped test 3", () => {});

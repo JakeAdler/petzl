@@ -21,7 +21,9 @@ const summarize = (
 
 			log(colors.red(colors.bold(`Failed #${i + 1} - ${title}`)));
 
-			const pathWithLineNumber = error.stack.split("at ")[1];
+			const pathWithLineNumber = error.stack
+				.split("at ")[1]
+				.replace(process.cwd() + "/", "");
 			log(`    @ ${pathWithLineNumber.trim()}`);
 			const expected =
 				typeof error.expected === "object"

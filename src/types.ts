@@ -1,5 +1,6 @@
 import Runner from "./runner";
 
+// Function types
 type AnyVoid = Promise<void> | void;
 
 export type AnyVoidCB = () => AnyVoid;
@@ -9,30 +10,41 @@ export type AnyCB = () => Promise<any> | any;
 export type TestCB<T extends any[]> = (...macroArgs: T) => AnyVoid;
 
 export type LogFn = (...args: any[]) => void;
-export type ColorFn = (...args: any[]) => string;
 
 export type Title<T extends any[]> = string | ((...args: Partial<T>) => string);
 
-export interface Colors {
-	underline: ColorFn;
-	red: ColorFn;
-	green: ColorFn;
-	blue: ColorFn;
-	bold: ColorFn;
-	magenta: ColorFn;
-	grey: ColorFn;
+export interface Hooks {
+	beforeEach: AnyVoidCB;
+	afterEach: AnyVoidCB;
 }
 
+export interface Context {
+	passed: number;
+	failed: number;
+	testRuntime: number;
+	errors: any[];
+}
+
+// Configuration
 export interface DevConfiguration {
 	logger?: Pick<Console, "log">;
 	format?: boolean;
 	symbols?: boolean;
 }
 
+export interface Configuration {
+	runner?: RunnerConfiguration;
+	colors?: boolean;
+	bubbleHooks?: boolean;
+	volume?: number;
+	dev?: false | DevConfiguration;
+}
+
 export interface RunnerConfiguration {
 	use: keyof Runner;
 }
 
+// Runner configuration
 export interface SequencerConfiguration extends RunnerConfiguration {
 	use: "sequencer";
 	include: string[];
@@ -47,16 +59,10 @@ export interface MatchExtensionsConfiguration extends RunnerConfiguration {
 
 export interface EntryPointConfiguration extends RunnerConfiguration {
 	use: "entryPoint";
+	root?: string;
 }
 
-export interface Configuration {
-	runner?: RunnerConfiguration;
-	colors?: boolean;
-	bubbleHooks?: boolean;
-	volume?: number;
-	dev?: false | DevConfiguration;
-}
-
+// Actions
 export interface Action {
 	type:
 		| "it"
@@ -98,17 +104,6 @@ export interface DoOnceAction extends Action {
 	cb: AnyCB;
 }
 
-export interface Hooks {
-	beforeEach: AnyVoidCB;
-	afterEach: AnyVoidCB;
-}
-
-export interface Context {
-	passed: number;
-	failed: number;
-	testRuntime: number;
-	errors: any[];
-}
 // Errors
 
 export class ConfigError extends Error {

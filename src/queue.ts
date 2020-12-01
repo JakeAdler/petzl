@@ -37,6 +37,7 @@ export default class Queue {
 	};
 
 	public queue: Action[] = [];
+
 	public pushAction = <A extends Action>(action: A) => {
 		this.queue.push(action);
 	};

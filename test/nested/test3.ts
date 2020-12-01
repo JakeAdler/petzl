@@ -1,7 +1,10 @@
-import { it } from "../../dist";
+import { configure, it } from "../../dist";
 
-it("SUPER NESTED TEST", () => {});
-it("SUPER NESTED TEST", () => {});
-it("SUPER NESTED TEST", () => {});
-it("SUPER NESTED TEST", () => {});
-it("SUPER NESTED TEST", () => {});
+it("should confirm 1 + 1 = 2", () => {});
+it("SUPER NESTED TEST 2", () => {});
+configure({ colors: false });
+it("SUPER NESTED TEST 2", () => {});
+it("SUPER NESTED TEST 2", () => {});
+configure({ colors: true });
+it("SUPER NESTED TEST 2", () => {});
+it("SUPER NESTED TEST 2", () => {});

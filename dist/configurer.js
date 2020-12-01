@@ -24,11 +24,11 @@ var Configurer = /** @class */ (function () {
                 _this.config = Object.assign({}, _this.defaultConfiguration, options);
             }
             else {
-                _this.config = Object.assign({}, _this.defaultConfiguration);
+                _this.config = _this.defaultConfiguration;
             }
         };
         this.findConfig = function () {
-            var pathToConfig = path_1.default.join(process.cwd(), "petzl.config.js");
+            var pathToConfig = path_1.default.join(process.env["PWD"], "petzl.config.js");
             var configExists = fs_1.default.existsSync(pathToConfig);
             if (configExists) {
                 var userConfigFile = require(pathToConfig);

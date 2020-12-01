@@ -1,4 +1,5 @@
-import { Colors, Title } from "./types";
+import Logger from "./logger";
+import { Title } from "./types";
 export declare const formatTitle: <T extends any[]>(title: Title<T>, ...args: T) => string;
 export declare class Clock {
     constructor();
@@ -8,4 +9,4 @@ export declare class Clock {
     calc: () => number;
 }
 export declare const registerProcessEventListeners: () => void;
-export declare const createColors: (real: boolean) => Colors;
+export declare const createColors: (real: boolean) => Logger["colors"];

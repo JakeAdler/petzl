@@ -1,6 +1,6 @@
 import { performance } from "perf_hooks";
 import Logger from "./logger";
-import { Colors, Title } from "./types";
+import { Title } from "./types";
 
 export const formatTitle = <T extends any[]>(
 	title: Title<T>,
@@ -38,7 +38,7 @@ export const registerProcessEventListeners = () => {
 	});
 };
 
-export const createColors = (real: boolean): Colors => {
+export const createColors = (real: boolean): Logger["colors"] => {
 	if (!real) {
 		return {
 			underline: (args) => args,

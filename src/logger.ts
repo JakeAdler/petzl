@@ -1,9 +1,22 @@
-import { LogFn, Colors, Configuration } from "./types";
+import { LogFn, Configuration } from "./types";
 import { createColors } from "./utils";
+
+export type ColorFn = (...args: any[]) => string;
+
+export interface Colors {
+	underline: ColorFn;
+	red: ColorFn;
+	green: ColorFn;
+	blue: ColorFn;
+	bold: ColorFn;
+	magenta: ColorFn;
+	grey: ColorFn;
+}
 
 export default class Logger {
 	logFn: LogFn;
 	colors: Colors;
+	dev: boolean;
 	format: boolean;
 	symbols: boolean;
 	volume: number;
@@ -12,10 +25,12 @@ export default class Logger {
 		const { colors, volume, dev } = configuration;
 
 		if (dev) {
+			this.dev = true;
 			this.logFn = dev.logger.log;
 			this.format = dev.format;
 			this.symbols = dev.symbols;
 		} else {
+			this.dev = false;
 			this.logFn = console.log;
 			this.format = true;
 			this.symbols = true;
@@ -83,5 +98,12 @@ export default class Logger {
 			this.log(this.colors.bold(this.colors.underline(title)));
 		}
 		this.addPadding();
+	};
+
+	logTestFileName = (fileName: string) => {
+		if (this.volume >= 3) {
+			const shortPath = fileName.replace(process.cwd(), "");
+			this.logFn(this.colors.bold(this.colors.underline(shortPath)));
+		}
 	};
 }

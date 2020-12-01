@@ -11,6 +11,7 @@ import {
 	isSequencerConfig,
 	SequencerConfiguration,
 } from "./types";
+import Logger from "./logger";
 register({
 	files: true,
 });
@@ -18,11 +19,14 @@ register({
 export default class Runner {
 	private queue: Queue;
 	private config: Configuration;
+	private logger: Logger;
 
 	constructor(queue: Queue, config: Configuration) {
 		this.queue = queue;
 		this.config = config;
+		this.logger = new Logger(config);
 	}
+
 	private getAllFiles = (dirPath: string, arrayOfFiles?: string[]) => {
 		const files = fs.readdirSync(dirPath);
 
@@ -42,13 +46,25 @@ export default class Runner {
 		return arrayOfFiles;
 	};
 
+	private joinPathAndRoot = (input: string, root?: string) => {
+		if (root) {
+			return path.join(root, input);
+		} else {
+			return input;
+		}
+	};
+
 	private readDirWithMatcher = (dir: string, matchers?: string[]) => {
 		const allFiles = this.getAllFiles(dir);
 		return allFiles.filter((fileName) => {
-			for (const extension of matchers) {
-				if (fileName.endsWith(extension)) {
-					return fileName;
+			if (matchers) {
+				for (const extension of matchers) {
+					if (fileName.endsWith(extension)) {
+						return fileName;
+					}
 				}
+			} else {
+				return fileName;
 			}
 		});
 	};
@@ -66,17 +82,73 @@ export default class Runner {
 		});
 	};
 
+	private runList = (paths: string[]) => {
+		for (const file of paths) {
+			require(file);
+		}
+		this.queue.run();
+	};
+
 	public entryPoint = (config: EntryPointConfiguration) => {
-		const fileArg = process.argv[2];
-		if (fileArg) {
-			fs.realpath(fileArg, (err, realPath) => {
-				if (err) {
-					throw new Error(`${fileArg} is not a valid path`);
-				} else {
-					require(realPath);
-					this.queue.run();
+		const { root } = config;
+		const cliInput = process.argv[2];
+		const pathWithRoot = this.joinPathAndRoot(cliInput, root);
+		if (cliInput) {
+			let isDir: boolean;
+			let isFile: boolean;
+			try {
+				const fileArgStat = fs.statSync(pathWithRoot);
+				isDir = fileArgStat.isDirectory();
+				isFile = fileArgStat.isFile();
+			} catch {}
+			if (isFile) {
+				// Run file
+				const filePath = fs.realpathSync(pathWithRoot);
+				const realPath = this.getRealPaths([filePath]);
+				this.runList(realPath);
+			} else if (isDir) {
+				// Run directory
+				const allFilesInDir = this.getAllFiles(pathWithRoot);
+				const realPaths = this.getRealPaths(allFilesInDir);
+				this.runList(realPaths);
+			} else if (root) {
+				// Match regex
+
+				const chars = cliInput.split("");
+				const regexStr = chars.reduce((prev, acc, i) => {
+					if (i === chars.length - 1) {
+						prev += acc;
+					} else {
+						prev += `${acc}.*`;
+					}
+					return prev;
+				}, "");
+
+				const regex = new RegExp(regexStr);
+
+				const allFiles = this.getAllFiles(root);
+
+				const matchingFiles = allFiles.filter((fileName) => {
+					const matches = fileName.match(regex);
+					if (matches && matches.length) {
+						return fileName;
+					}
+				});
+
+				const realPaths = this.getRealPaths(matchingFiles);
+
+				for (const file of realPaths) {
+					this.queue.pushAction({
+						type: "doOnce",
+						cb: () => {
+							this.logger.logTestFileName(file);
+						},
+					});
+					require(file);
 				}
-			});
+
+				this.queue.run();
+			}
 		} else {
 			throw new Error(
 				"Must provide entry point as command line argument for the entryPoint runner"
@@ -89,6 +161,7 @@ export default class Runner {
 		const allPaths = this.readDirWithMatcher(root, match);
 		const realPaths = this.getRealPaths(allPaths);
 		for (const file of realPaths) {
+			this.logger.logTestFileName(file);
 			require(file);
 		}
 		this.queue.run();

@@ -12,7 +12,9 @@ var summarize = function (logger, context, configuration) {
         for (var i = 0; i < errors.length; i++) {
             var _a = errors[i], error = _a[0], title = _a[1];
             log(colors.red(colors.bold("Failed #" + (i + 1) + " - " + title)));
-            var pathWithLineNumber = error.stack.split("at ")[1];
+            var pathWithLineNumber = error.stack
+                .split("at ")[1]
+                .replace(process.cwd() + "/", "");
             log("    @ " + pathWithLineNumber.trim());
             var expected = typeof error.expected === "object"
                 ? util_1.inspect(error.expected, false, 1)

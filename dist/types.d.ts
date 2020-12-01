@@ -4,21 +4,28 @@ export declare type AnyVoidCB = () => AnyVoid;
 export declare type AnyCB = () => Promise<any> | any;
 export declare type TestCB<T extends any[]> = (...macroArgs: T) => AnyVoid;
 export declare type LogFn = (...args: any[]) => void;
-export declare type ColorFn = (...args: any[]) => string;
 export declare type Title<T extends any[]> = string | ((...args: Partial<T>) => string);
-export interface Colors {
-    underline: ColorFn;
-    red: ColorFn;
-    green: ColorFn;
-    blue: ColorFn;
-    bold: ColorFn;
-    magenta: ColorFn;
-    grey: ColorFn;
+export interface Hooks {
+    beforeEach: AnyVoidCB;
+    afterEach: AnyVoidCB;
+}
+export interface Context {
+    passed: number;
+    failed: number;
+    testRuntime: number;
+    errors: any[];
 }
 export interface DevConfiguration {
     logger?: Pick<Console, "log">;
     format?: boolean;
     symbols?: boolean;
+}
+export interface Configuration {
+    runner?: RunnerConfiguration;
+    colors?: boolean;
+    bubbleHooks?: boolean;
+    volume?: number;
+    dev?: false | DevConfiguration;
 }
 export interface RunnerConfiguration {
     use: keyof Runner;
@@ -35,13 +42,7 @@ export interface MatchExtensionsConfiguration extends RunnerConfiguration {
 }
 export interface EntryPointConfiguration extends RunnerConfiguration {
     use: "entryPoint";
-}
-export interface Configuration {
-    runner?: RunnerConfiguration;
-    colors?: boolean;
-    bubbleHooks?: boolean;
-    volume?: number;
-    dev?: false | DevConfiguration;
+    root?: string;
 }
 export interface Action {
     type: "it" | "describe-start" | "describe-end" | "doOnce" | "hook" | "configure";
@@ -70,16 +71,6 @@ export interface ConfigureAction extends Action {
 export interface DoOnceAction extends Action {
     type: "doOnce";
     cb: AnyCB;
-}
-export interface Hooks {
-    beforeEach: AnyVoidCB;
-    afterEach: AnyVoidCB;
-}
-export interface Context {
-    passed: number;
-    failed: number;
-    testRuntime: number;
-    errors: any[];
 }
 export declare class ConfigError extends Error {
     constructor(optionName: string, message: string);
