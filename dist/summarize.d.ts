@@ -1,4 +1,10 @@
 import { Configuration, Context } from "./types";
 import Logger from "./logger";
-declare const summarize: (logger: Logger, context: Context, configuration: Configuration) => void;
-export default summarize;
+export default class Summarizer {
+    logger: Logger;
+    constructor(logger: Logger, configuration: Configuration);
+    createTable: (context: Context) => string;
+    updateSummary: (context: Context) => void;
+    clearSummary: (isLast?: boolean) => void;
+    endReport: (context: Context) => void;
+}

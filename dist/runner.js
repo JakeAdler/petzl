@@ -1,11 +1,4 @@
 "use strict";
-var __spreadArrays = (this && this.__spreadArrays) || function () {
-    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
-    for (var r = Array(s), k = 0, i = 0; i < il; i++)
-        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
-            r[k] = a[j];
-    return r;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -58,8 +51,8 @@ var Runner = /** @class */ (function () {
                 }
             });
         };
-        this.getRealPaths = function (files) {
-            return files.map(function (file) {
+        this.getRealPaths = function (paths) {
+            return paths.map(function (file) {
                 var realPath = fs_1.default.realpathSync(file);
                 if (!file) {
                     throw new Error("Could not create path for " + file + ". Check configuration.");
@@ -70,12 +63,19 @@ var Runner = /** @class */ (function () {
             });
         };
         this.runList = function (paths) {
-            global.console.log = function (message) {
-                console.log.apply(console, __spreadArrays(["*"], message));
-            };
-            for (var _i = 0, paths_1 = paths; _i < paths_1.length; _i++) {
-                var file = paths_1[_i];
+            var realPaths = _this.getRealPaths(paths);
+            var _loop_1 = function (file) {
+                _this.queue.pushAction({
+                    type: "doOnce",
+                    cb: function () {
+                        _this.logger.logTestFileName(file);
+                    },
+                });
                 require(file);
+            };
+            for (var _i = 0, realPaths_1 = realPaths; _i < realPaths_1.length; _i++) {
+                var file = realPaths_1[_i];
+                _loop_1(file);
             }
             _this.queue.run();
         };
@@ -95,14 +95,12 @@ var Runner = /** @class */ (function () {
                 if (isFile) {
                     // Run file
                     var filePath = fs_1.default.realpathSync(pathWithRoot);
-                    var realPath = _this.getRealPaths([filePath]);
-                    _this.runList(realPath);
+                    _this.runList([filePath]);
                 }
                 else if (isDir) {
                     // Run directory
                     var allFilesInDir = _this.getAllFiles(pathWithRoot);
-                    var realPaths = _this.getRealPaths(allFilesInDir);
-                    _this.runList(realPaths);
+                    _this.runList(allFilesInDir);
                 }
                 else if (root) {
                     // Match regex
@@ -124,21 +122,7 @@ var Runner = /** @class */ (function () {
                             return fileName;
                         }
                     });
-                    var realPaths = _this.getRealPaths(matchingFiles);
-                    var _loop_1 = function (file) {
-                        _this.queue.pushAction({
-                            type: "doOnce",
-                            cb: function () {
-                                _this.logger.logTestFileName(file);
-                            },
-                        });
-                        require(file);
-                    };
-                    for (var _i = 0, realPaths_1 = realPaths; _i < realPaths_1.length; _i++) {
-                        var file = realPaths_1[_i];
-                        _loop_1(file);
-                    }
-                    _this.queue.run();
+                    _this.runList(matchingFiles);
                 }
             }
             else {
@@ -148,13 +132,7 @@ var Runner = /** @class */ (function () {
         this.matchExtensions = function (config) {
             var match = config.match, root = config.root;
             var allPaths = _this.readDirWithMatcher(root, match);
-            var realPaths = _this.getRealPaths(allPaths);
-            for (var _i = 0, realPaths_2 = realPaths; _i < realPaths_2.length; _i++) {
-                var file = realPaths_2[_i];
-                _this.logger.logTestFileName(file);
-                require(file);
-            }
-            _this.queue.run();
+            _this.runList(allPaths);
         };
         this.sequencer = function (config) {
             /* const sequence = this.config.runner.run; */
@@ -190,12 +168,7 @@ var Runner = /** @class */ (function () {
                     }
                 }
             }
-            var realPaths = _this.getRealPaths(allSequencedFiles);
-            for (var _c = 0, realPaths_3 = realPaths; _c < realPaths_3.length; _c++) {
-                var file = realPaths_3[_c];
-                require(file);
-            }
-            _this.queue.run();
+            _this.runList(allSequencedFiles);
         };
         this.run = function () {
             var runnerConfig = _this.config.runner;

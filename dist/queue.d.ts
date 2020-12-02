@@ -1,10 +1,12 @@
 import Logger from "./logger";
 import Hijacker from "./hijacker";
+import Summarizer from "./summarize";
 import { Action, Hooks, AnyCB, Configuration } from "./types";
 export default class Queue {
     config: Configuration;
     logger: Logger;
     hijacker: Hijacker;
+    summarizer: Summarizer;
     constructor(config: Configuration);
     context: {
         passed: number;

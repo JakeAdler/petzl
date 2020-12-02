@@ -75,7 +75,7 @@ var Logger = /** @class */ (function () {
         this.logTestFileName = function (fileName) {
             if (_this.volume >= 3) {
                 var shortPath = fileName.replace(process.cwd(), "");
-                _this.logFn(_this.colors.bold(_this.colors.underline(shortPath)));
+                _this.log(_this.colors.bold(_this.colors.underline(shortPath)));
             }
         };
         var colors = configuration.colors, volume = configuration.volume;

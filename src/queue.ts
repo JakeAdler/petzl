@@ -1,7 +1,7 @@
 import Logger from "./logger";
 import Hijacker from "./hijacker";
 import { Clock } from "./utils";
-import summarize from "./summarize";
+import Summarizer from "./summarize";
 import {
 	Action,
 	ItAction,
@@ -22,11 +22,13 @@ export default class Queue {
 	config: Configuration;
 	logger: Logger;
 	hijacker: Hijacker;
+	summarizer: Summarizer;
 
 	constructor(config: Configuration) {
 		this.config = config;
 		this.logger = new Logger(this.config);
 		this.hijacker = new Hijacker(this.logger, this.config);
+		this.summarizer = new Summarizer(this.logger, this.config);
 	}
 
 	public context = {
@@ -52,9 +54,18 @@ export default class Queue {
 	public run = async () => {
 		const { queue, evaluateTest, startGroup, stopGroup } = this;
 
+		this.summarizer.updateSummary(this.context);
+
 		try {
 			for (let i = 0; i < queue.length; i++) {
 				const action = queue[i];
+
+				if (i !== queue.length - 1) {
+					this.summarizer.clearSummary();
+					this.summarizer.updateSummary(this.context);
+				} else {
+					this.summarizer.clearSummary(true);
+				}
 
 				if (isHookAction(action)) {
 					await action.cb();
@@ -82,7 +93,7 @@ export default class Queue {
 			}
 		} finally {
 			this.logger.dumpLogs();
-			summarize(this.logger, this.context, this.config);
+			this.summarizer.endReport(this.context);
 		}
 	};
 

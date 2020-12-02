@@ -102,7 +102,7 @@ export default class Logger {
 	logTestFileName = (fileName: string) => {
 		if (this.volume >= 3) {
 			const shortPath = fileName.replace(process.cwd(), "");
-			this.logFn(this.colors.bold(this.colors.underline(shortPath)));
+			this.log(this.colors.bold(this.colors.underline(shortPath)));
 		}
 	};
 }

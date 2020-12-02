@@ -80,6 +80,7 @@ var Queue = /** @class */ (function () {
                 switch (_b.label) {
                     case 0:
                         _a = this, queue = _a.queue, evaluateTest = _a.evaluateTest, startGroup = _a.startGroup, stopGroup = _a.stopGroup;
+                        this.summarizer.updateSummary(this.context);
                         _b.label = 1;
                     case 1:
                         _b.trys.push([1, , 15, 16]);
@@ -88,6 +89,13 @@ var Queue = /** @class */ (function () {
                     case 2:
                         if (!(i < queue.length)) return [3 /*break*/, 14];
                         action = queue[i];
+                        if (i !== queue.length - 1) {
+                            this.summarizer.clearSummary();
+                            this.summarizer.updateSummary(this.context);
+                        }
+                        else {
+                            this.summarizer.clearSummary(true);
+                        }
                         if (!types_1.isHookAction(action)) return [3 /*break*/, 4];
                         return [4 /*yield*/, action.cb()];
                     case 3:
@@ -128,7 +136,7 @@ var Queue = /** @class */ (function () {
                     case 14: return [3 /*break*/, 16];
                     case 15:
                         this.logger.dumpLogs();
-                        summarize_1.default(this.logger, this.context, this.config);
+                        this.summarizer.endReport(this.context);
                         return [7 /*endfinally*/];
                     case 16: return [2 /*return*/];
                 }
@@ -243,6 +251,7 @@ var Queue = /** @class */ (function () {
         this.config = config;
         this.logger = new logger_1.default(this.config);
         this.hijacker = new hijacker_1.default(this.logger, this.config);
+        this.summarizer = new summarize_1.default(this.logger, this.config);
     }
     return Queue;
 }());

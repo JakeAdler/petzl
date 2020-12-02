@@ -69,8 +69,8 @@ export default class Runner {
 		});
 	};
 
-	private getRealPaths = (files: string[]) => {
-		return files.map((file) => {
+	private getRealPaths = (paths: string[]) => {
+		return paths.map((file) => {
 			const realPath = fs.realpathSync(file);
 			if (!file) {
 				throw new Error(
@@ -83,7 +83,14 @@ export default class Runner {
 	};
 
 	private runList = (paths: string[]) => {
-		for (const file of paths) {
+		const realPaths = this.getRealPaths(paths);
+		for (const file of realPaths) {
+			this.queue.pushAction({
+				type: "doOnce",
+				cb: () => {
+					this.logger.logTestFileName(file);
+				},
+			});
 			require(file);
 		}
 		this.queue.run();
@@ -104,13 +111,11 @@ export default class Runner {
 			if (isFile) {
 				// Run file
 				const filePath = fs.realpathSync(pathWithRoot);
-				const realPath = this.getRealPaths([filePath]);
-				this.runList(realPath);
+				this.runList([filePath]);
 			} else if (isDir) {
 				// Run directory
 				const allFilesInDir = this.getAllFiles(pathWithRoot);
-				const realPaths = this.getRealPaths(allFilesInDir);
-				this.runList(realPaths);
+				this.runList(allFilesInDir);
 			} else if (root) {
 				// Match regex
 
@@ -135,19 +140,7 @@ export default class Runner {
 					}
 				});
 
-				const realPaths = this.getRealPaths(matchingFiles);
-
-				for (const file of realPaths) {
-					this.queue.pushAction({
-						type: "doOnce",
-						cb: () => {
-							this.logger.logTestFileName(file);
-						},
-					});
-					require(file);
-				}
-
-				this.queue.run();
+				this.runList(matchingFiles);
 			}
 		} else {
 			throw new Error(
@@ -159,12 +152,7 @@ export default class Runner {
 	public matchExtensions = (config: MatchExtensionsConfiguration) => {
 		const { match, root } = config;
 		const allPaths = this.readDirWithMatcher(root, match);
-		const realPaths = this.getRealPaths(allPaths);
-		for (const file of realPaths) {
-			this.logger.logTestFileName(file);
-			require(file);
-		}
-		this.queue.run();
+		this.runList(allPaths);
 	};
 
 	public sequencer = (config: SequencerConfiguration) => {
@@ -200,13 +188,7 @@ export default class Runner {
 			}
 		}
 
-		const realPaths = this.getRealPaths(allSequencedFiles);
-
-		for (const file of realPaths) {
-			require(file);
-		}
-
-		this.queue.run();
+		this.runList(allSequencedFiles);
 	};
 
 	public run = () => {
