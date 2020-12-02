@@ -60,11 +60,10 @@ export default class Queue {
 			for (let i = 0; i < queue.length; i++) {
 				const action = queue[i];
 
+				this.summarizer.clearSummary();
+
 				if (i !== queue.length - 1) {
-					this.summarizer.clearSummary();
 					this.summarizer.updateSummary(this.context);
-				} else {
-					this.summarizer.clearSummary(true);
 				}
 
 				if (isHookAction(action)) {

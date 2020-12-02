@@ -12,6 +12,7 @@ import {
 	SequencerConfiguration,
 } from "./types";
 import Logger from "./logger";
+
 register({
 	files: true,
 });
@@ -100,51 +101,53 @@ export default class Runner {
 		const { root } = config;
 		const cliInput = process.argv[2];
 		const pathWithRoot = this.joinPathAndRoot(cliInput, root);
-		if (cliInput) {
-			let isDir: boolean;
-			let isFile: boolean;
-			try {
-				const fileArgStat = fs.statSync(pathWithRoot);
-				isDir = fileArgStat.isDirectory();
-				isFile = fileArgStat.isFile();
-			} catch {}
-			if (isFile) {
-				// Run file
-				const filePath = fs.realpathSync(pathWithRoot);
-				this.runList([filePath]);
-			} else if (isDir) {
-				// Run directory
-				const allFilesInDir = this.getAllFiles(pathWithRoot);
-				this.runList(allFilesInDir);
-			} else if (root) {
-				// Match regex
+		let isDir: boolean;
+		let isFile: boolean;
+		try {
+			const fileArgStat = fs.statSync(pathWithRoot);
+			isDir = fileArgStat.isDirectory();
+			isFile = fileArgStat.isFile();
+		} catch {}
+		if (isFile) {
+			// Run file
+			this.logger.logFileOrDirname("file", pathWithRoot);
+			const filePath = fs.realpathSync(pathWithRoot);
+			this.runList([filePath]);
+		} else if (isDir) {
+			// Run directory
+			this.logger.logFileOrDirname("directory", pathWithRoot);
+			const allFilesInDir = this.getAllFiles(pathWithRoot);
+			this.runList(allFilesInDir);
+		} else if (root && cliInput) {
+			const allFiles = this.getAllFiles(root);
 
-				const chars = cliInput.split("");
-				const regexStr = chars.reduce((prev, acc, i) => {
-					if (i === chars.length - 1) {
-						prev += acc;
-					} else {
-						prev += `${acc}.*`;
-					}
-					return prev;
-				}, "");
+			const chars = cliInput.split("");
 
-				const regex = new RegExp(regexStr);
+			const regexStr = chars.reduce((prev, acc, i) => {
+				if (i === chars.length - 1) {
+					prev += acc;
+				} else {
+					prev += `${acc}.*`;
+				}
+				return prev;
+			}, "");
 
-				const allFiles = this.getAllFiles(root);
+			const regex = new RegExp(regexStr);
 
-				const matchingFiles = allFiles.filter((fileName) => {
-					const matches = fileName.match(regex);
-					if (matches && matches.length) {
-						return fileName;
-					}
-				});
+			const matchingFiles = allFiles.filter((fileName) => {
+				const matches = fileName.match(regex);
+				if (matches && matches.length) {
+					return fileName;
+				}
+			});
 
-				this.runList(matchingFiles);
-			}
+			this.runList(matchingFiles);
+		} else if (root) {
+			const allFiles = this.getAllFiles(root);
+			this.runList(allFiles);
 		} else {
 			throw new Error(
-				"Must provide entry point as command line argument for the entryPoint runner"
+				"Must provide 'runner.root' option in config file, or path to file or directory as command line argument "
 			);
 		}
 	};
@@ -202,6 +205,5 @@ export default class Runner {
 		} else {
 			throw new Error("Cannot read runner cofiguration");
 		}
-		/* this[runner](); */
 	};
 }

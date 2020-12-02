@@ -1,5 +1,6 @@
 import { LogFn, Configuration } from "./types";
 import { createColors } from "./utils";
+import readline from "readline";
 
 export type ColorFn = (...args: any[]) => string;
 
@@ -15,6 +16,11 @@ export interface Colors {
 class LogCache {
 	padding = "";
 	logQueue = [];
+
+	update = (logger: Logger) => {
+		this.padding = logger.padding;
+		this.logQueue = logger.logQueue;
+	};
 }
 
 const cache = new LogCache();
@@ -37,7 +43,7 @@ export default class Logger {
 
 	addPadding = () => {
 		this.padding += "  ";
-		cache.padding = this.padding;
+		cache.update(this);
 	};
 
 	subtractPadding = () => {
@@ -46,12 +52,12 @@ export default class Logger {
 		} else {
 			this.padding = this.padding.slice(0, this.padding.length - 2);
 		}
-		cache.padding = this.padding;
+		cache.update(this);
 	};
 
 	flushPadding = () => {
 		this.padding = "";
-		cache.padding = this.padding;
+		cache.update(this);
 	};
 
 	public logQueue = [];
@@ -70,13 +76,13 @@ export default class Logger {
 			this.logQueue.push(args);
 		}
 
-		cache.logQueue = this.logQueue;
+		cache.update(this);
 	};
 
 	pass = (title: string, runtime: number, force?: boolean) => {
 		if (this.volume >= 3 || force) {
 			this.log(
-				this.colors.green("PASSED: "),
+				this.colors.green("🗸"),
 				title,
 				this.colors.green(`(${runtime}ms)`)
 			);
@@ -86,7 +92,7 @@ export default class Logger {
 	fail = (title: string, runtime: number, force?: boolean) => {
 		if (this.volume >= 3 || force) {
 			this.log(
-				this.colors.red("FAILED: "),
+				this.colors.red("✘"),
 				title,
 				this.colors.red(`(${runtime}ms)`)
 			);
@@ -104,5 +110,13 @@ export default class Logger {
 			const shortPath = fileName.replace(process.cwd(), "");
 			this.log(this.colors.bold(this.colors.underline(shortPath)));
 		}
+	};
+
+	logFileOrDirname = (fileOrDir: "file" | "directory", name: string) => {
+		this.logFn(
+			this.colors.bold(
+				this.colors.underline(`Running ${fileOrDir} ${name}`)
+			)
+		);
 	};
 }

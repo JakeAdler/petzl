@@ -37,10 +37,8 @@ export default class Summarizer {
 		this.logger.logFn(this.createTable(context));
 	};
 
-	clearSummary = (isLast?: boolean) => {
-		if (!isLast) {
-			process.stdout.moveCursor(0, -10);
-		}
+	clearSummary = () => {
+		process.stdout.moveCursor(0, -10);
 		process.stdout.clearScreenDown();
 	};
 
@@ -55,12 +53,13 @@ export default class Summarizer {
 			for (let i = 0; i < errors.length; i++) {
 				const [error, title] = errors[i];
 
-				log(colors.red(colors.bold(`Failed #${i + 1} - ${title}`)));
+				log(colors.red(colors.bold(`Failed:  ${title}`)));
 
+				this.logger.addPadding();
 				const pathWithLineNumber = error.stack
 					.split("at ")[1]
 					.replace(process.cwd() + "/", "");
-				log(`    @ ${pathWithLineNumber.trim()}`);
+				log(`@ ${pathWithLineNumber.trim()}`);
 				const expected =
 					typeof error.expected === "object"
 						? inspect(error.expected, false, 1)
@@ -73,11 +72,12 @@ export default class Summarizer {
 
 				if (error instanceof AssertionError) {
 					log("   ", error.message.split(":")[0]);
-					log(colors.green(`    expected: ${expected}`));
-					log(colors.red(`    recieved: ${actual}`));
+					log(colors.green(`expected: ${expected}`));
+					log(colors.red(`recieved: ${actual}`));
 				} else {
 					log(error);
 				}
+				this.logger.subtractPadding();
 
 				log("\n");
 			}

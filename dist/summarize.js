@@ -30,10 +30,8 @@ var Summarizer = /** @class */ (function () {
         this.updateSummary = function (context) {
             _this.logger.logFn(_this.createTable(context));
         };
-        this.clearSummary = function (isLast) {
-            if (!isLast) {
-                process.stdout.moveCursor(0, -10);
-            }
+        this.clearSummary = function () {
+            process.stdout.moveCursor(0, -10);
             process.stdout.clearScreenDown();
         };
         this.endReport = function (context) {
@@ -44,11 +42,12 @@ var Summarizer = /** @class */ (function () {
                 log("\n");
                 for (var i = 0; i < errors.length; i++) {
                     var _b = errors[i], error = _b[0], title = _b[1];
-                    log(colors.red(colors.bold("Failed #" + (i + 1) + " - " + title)));
+                    log(colors.red(colors.bold("Failed:  " + title)));
+                    _this.logger.addPadding();
                     var pathWithLineNumber = error.stack
                         .split("at ")[1]
                         .replace(process.cwd() + "/", "");
-                    log("    @ " + pathWithLineNumber.trim());
+                    log("@ " + pathWithLineNumber.trim());
                     var expected = typeof error.expected === "object"
                         ? util_1.inspect(error.expected, false, 1)
                         : error.expected;
@@ -57,12 +56,13 @@ var Summarizer = /** @class */ (function () {
                         : error.actual;
                     if (error instanceof assert_1.AssertionError) {
                         log("   ", error.message.split(":")[0]);
-                        log(colors.green("    expected: " + expected));
-                        log(colors.red("    recieved: " + actual));
+                        log(colors.green("expected: " + expected));
+                        log(colors.red("recieved: " + actual));
                     }
                     else {
                         log(error);
                     }
+                    _this.logger.subtractPadding();
                     log("\n");
                 }
             }

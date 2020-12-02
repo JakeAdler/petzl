@@ -89,12 +89,9 @@ var Queue = /** @class */ (function () {
                     case 2:
                         if (!(i < queue.length)) return [3 /*break*/, 14];
                         action = queue[i];
+                        this.summarizer.clearSummary();
                         if (i !== queue.length - 1) {
-                            this.summarizer.clearSummary();
                             this.summarizer.updateSummary(this.context);
-                        }
-                        else {
-                            this.summarizer.clearSummary(true);
                         }
                         if (!types_1.isHookAction(action)) return [3 /*break*/, 4];
                         return [4 /*yield*/, action.cb()];

@@ -10,8 +10,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var utils_1 = require("./utils");
 var LogCache = /** @class */ (function () {
     function LogCache() {
+        var _this = this;
         this.padding = "";
         this.logQueue = [];
+        this.update = function (logger) {
+            _this.padding = logger.padding;
+            _this.logQueue = logger.logQueue;
+        };
     }
     return LogCache;
 }());
@@ -21,7 +26,7 @@ var Logger = /** @class */ (function () {
         var _this = this;
         this.addPadding = function () {
             _this.padding += "  ";
-            cache.padding = _this.padding;
+            cache.update(_this);
         };
         this.subtractPadding = function () {
             if (_this.padding.length === 2) {
@@ -30,11 +35,11 @@ var Logger = /** @class */ (function () {
             else {
                 _this.padding = _this.padding.slice(0, _this.padding.length - 2);
             }
-            cache.padding = _this.padding;
+            cache.update(_this);
         };
         this.flushPadding = function () {
             _this.padding = "";
-            cache.padding = _this.padding;
+            cache.update(_this);
         };
         this.logQueue = [];
         this.dumpLogs = function () {
@@ -55,16 +60,16 @@ var Logger = /** @class */ (function () {
             if (_this.volume <= 2) {
                 _this.logQueue.push(args);
             }
-            cache.logQueue = _this.logQueue;
+            cache.update(_this);
         };
         this.pass = function (title, runtime, force) {
             if (_this.volume >= 3 || force) {
-                _this.log(_this.colors.green("PASSED: "), title, _this.colors.green("(" + runtime + "ms)"));
+                _this.log(_this.colors.green("🗸"), title, _this.colors.green("(" + runtime + "ms)"));
             }
         };
         this.fail = function (title, runtime, force) {
             if (_this.volume >= 3 || force) {
-                _this.log(_this.colors.red("FAILED: "), title, _this.colors.red("(" + runtime + "ms)"));
+                _this.log(_this.colors.red("✘"), title, _this.colors.red("(" + runtime + "ms)"));
             }
         };
         this.logGroupTitle = function (title) {
@@ -77,6 +82,9 @@ var Logger = /** @class */ (function () {
                 var shortPath = fileName.replace(process.cwd(), "");
                 _this.log(_this.colors.bold(_this.colors.underline(shortPath)));
             }
+        };
+        this.logFileOrDirname = function (fileOrDir, name) {
+            _this.logFn(_this.colors.bold(_this.colors.underline("Running " + fileOrDir + " " + name)));
         };
         var colors = configuration.colors, volume = configuration.volume;
         this.padding = cache.padding;

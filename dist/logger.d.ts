@@ -25,4 +25,5 @@ export default class Logger {
     fail: (title: string, runtime: number, force?: boolean) => void;
     logGroupTitle: (title: string) => void;
     logTestFileName: (fileName: string) => void;
+    logFileOrDirname: (fileOrDir: "file" | "directory", name: string) => void;
 }

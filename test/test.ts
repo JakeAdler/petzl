@@ -13,8 +13,21 @@ const sleep = async () => {
 	await timeout();
 };
 
+const data = {
+	foo: 100,
+	bar: {
+		baz: "lol",
+	},
+	bing: {
+		bop: "Wow",
+	},
+	shit: {
+		cmon: "now",
+	},
+};
 it("Non grouped test", async () => {
 	console.log("haha");
+	console.log(data);
 });
 
 it("Ton of assertions", async () => {

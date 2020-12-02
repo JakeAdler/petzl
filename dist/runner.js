@@ -83,50 +83,53 @@ var Runner = /** @class */ (function () {
             var root = config.root;
             var cliInput = process.argv[2];
             var pathWithRoot = _this.joinPathAndRoot(cliInput, root);
-            if (cliInput) {
-                var isDir = void 0;
-                var isFile = void 0;
-                try {
-                    var fileArgStat = fs_1.default.statSync(pathWithRoot);
-                    isDir = fileArgStat.isDirectory();
-                    isFile = fileArgStat.isFile();
-                }
-                catch (_a) { }
-                if (isFile) {
-                    // Run file
-                    var filePath = fs_1.default.realpathSync(pathWithRoot);
-                    _this.runList([filePath]);
-                }
-                else if (isDir) {
-                    // Run directory
-                    var allFilesInDir = _this.getAllFiles(pathWithRoot);
-                    _this.runList(allFilesInDir);
-                }
-                else if (root) {
-                    // Match regex
-                    var chars_1 = cliInput.split("");
-                    var regexStr = chars_1.reduce(function (prev, acc, i) {
-                        if (i === chars_1.length - 1) {
-                            prev += acc;
-                        }
-                        else {
-                            prev += acc + ".*";
-                        }
-                        return prev;
-                    }, "");
-                    var regex_1 = new RegExp(regexStr);
-                    var allFiles = _this.getAllFiles(root);
-                    var matchingFiles = allFiles.filter(function (fileName) {
-                        var matches = fileName.match(regex_1);
-                        if (matches && matches.length) {
-                            return fileName;
-                        }
-                    });
-                    _this.runList(matchingFiles);
-                }
+            var isDir;
+            var isFile;
+            try {
+                var fileArgStat = fs_1.default.statSync(pathWithRoot);
+                isDir = fileArgStat.isDirectory();
+                isFile = fileArgStat.isFile();
+            }
+            catch (_a) { }
+            if (isFile) {
+                // Run file
+                _this.logger.logFileOrDirname("file", pathWithRoot);
+                var filePath = fs_1.default.realpathSync(pathWithRoot);
+                _this.runList([filePath]);
+            }
+            else if (isDir) {
+                // Run directory
+                _this.logger.logFileOrDirname("directory", pathWithRoot);
+                var allFilesInDir = _this.getAllFiles(pathWithRoot);
+                _this.runList(allFilesInDir);
+            }
+            else if (root && cliInput) {
+                var allFiles = _this.getAllFiles(root);
+                var chars_1 = cliInput.split("");
+                var regexStr = chars_1.reduce(function (prev, acc, i) {
+                    if (i === chars_1.length - 1) {
+                        prev += acc;
+                    }
+                    else {
+                        prev += acc + ".*";
+                    }
+                    return prev;
+                }, "");
+                var regex_1 = new RegExp(regexStr);
+                var matchingFiles = allFiles.filter(function (fileName) {
+                    var matches = fileName.match(regex_1);
+                    if (matches && matches.length) {
+                        return fileName;
+                    }
+                });
+                _this.runList(matchingFiles);
+            }
+            else if (root) {
+                var allFiles = _this.getAllFiles(root);
+                _this.runList(allFiles);
             }
             else {
-                throw new Error("Must provide entry point as command line argument for the entryPoint runner");
+                throw new Error("Must provide 'runner.root' option in config file, or path to file or directory as command line argument ");
             }
         };
         this.matchExtensions = function (config) {
@@ -184,7 +187,6 @@ var Runner = /** @class */ (function () {
             else {
                 throw new Error("Cannot read runner cofiguration");
             }
-            /* this[runner](); */
         };
         this.queue = queue;
         this.config = config;

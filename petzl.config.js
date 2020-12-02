@@ -1,9 +1,8 @@
 module.exports = {
 	volume: 3,
 	runner: {
-		use: "matchExtensions",
+		use: "entryPoint",
 		root: "test",
-		match: [".ts"],
 		// include: ["test/test.ts", "test/nested/"],
 	},
 };
