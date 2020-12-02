@@ -53,15 +53,7 @@ var summarize = function (logger, context, configuration) {
         colors.blue(process.uptime().toFixed(1) + "s"),
     ];
     var endReport = [passed, faied, runtime, processRuntime];
-    if (configuration.dev && configuration.dev.symbols === false) {
-        log.apply(void 0, passed);
-        log.apply(void 0, faied);
-        log.apply(void 0, runtime);
-        log.apply(void 0, processRuntime);
-    }
-    else {
-        log(table_1.table(endReport, { border: table_1.getBorderCharacters("norc") }));
-    }
+    log(table_1.table(endReport, { border: table_1.getBorderCharacters("norc") }));
 };
 exports.default = summarize;
 //# sourceMappingURL=summarize.js.map

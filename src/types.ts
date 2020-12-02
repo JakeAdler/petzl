@@ -28,8 +28,6 @@ export interface Context {
 // Configuration
 export interface DevConfiguration {
 	logger?: Pick<Console, "log">;
-	format?: boolean;
-	symbols?: boolean;
 }
 
 export interface Configuration {

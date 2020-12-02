@@ -12,18 +12,17 @@ export interface Colors {
 export default class Logger {
     logFn: LogFn;
     colors: Colors;
-    dev: boolean;
-    format: boolean;
-    symbols: boolean;
     volume: number;
+    padding: string;
     constructor(configuration: Configuration);
-    private padding;
     addPadding: () => void;
     subtractPadding: () => void;
     flushPadding: () => void;
+    logQueue: any[];
+    dumpLogs: () => void;
     log: (...args: any[]) => void;
-    pass: (title: string, runtime: number) => void;
-    fail: (title: string, runtime: number) => void;
+    pass: (title: string, runtime: number, force?: boolean) => void;
+    fail: (title: string, runtime: number, force?: boolean) => void;
     logGroupTitle: (title: string) => void;
     logTestFileName: (fileName: string) => void;
 }

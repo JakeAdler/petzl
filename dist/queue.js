@@ -72,7 +72,7 @@ var Queue = /** @class */ (function () {
             _this.hijacker.resetGlobalLog();
             _this.config = Object.assign(_this.config, options);
             _this.logger = new logger_1.default(_this.config);
-            _this.hijacker = new hijacker_1.default(_this.logger);
+            _this.hijacker = new hijacker_1.default(_this.logger, _this.config);
         };
         this.run = function () { return __awaiter(_this, void 0, void 0, function () {
             var _a, queue, evaluateTest, startGroup, stopGroup, i, action;
@@ -127,6 +127,7 @@ var Queue = /** @class */ (function () {
                         return [3 /*break*/, 2];
                     case 14: return [3 /*break*/, 16];
                     case 15:
+                        this.logger.dumpLogs();
                         summarize_1.default(this.logger, this.context, this.config);
                         return [7 /*endfinally*/];
                     case 16: return [2 /*return*/];
@@ -175,6 +176,7 @@ var Queue = /** @class */ (function () {
             var _a, logger, cacheAndResetHooks;
             return __generator(this, function (_b) {
                 _a = this, logger = _a.logger, cacheAndResetHooks = _a.cacheAndResetHooks;
+                logger.addPadding();
                 logger.logGroupTitle(group.title);
                 cacheAndResetHooks();
                 return [2 /*return*/];
@@ -190,7 +192,7 @@ var Queue = /** @class */ (function () {
             });
         }); };
         this.evaluateTest = function (action) { return __awaiter(_this, void 0, void 0, function () {
-            var title, cb, args, _a, context, logger, hijacker, runHook, clock, didPass, runtime, err_1, runtime;
+            var title, cb, args, _a, context, logger, hijacker, runHook, clock, didPass, runtime, err_1;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -207,6 +209,7 @@ var Queue = /** @class */ (function () {
                         return [4 /*yield*/, cb.apply(void 0, args)];
                     case 3:
                         _b.sent();
+                        // Pass
                         runtime = clock.calc();
                         logger.pass(title, runtime);
                         context.passed += 1;
@@ -217,6 +220,8 @@ var Queue = /** @class */ (function () {
                         return [3 /*break*/, 7];
                     case 4:
                         err_1 = _b.sent();
+                        // Fail
+                        didPass = false;
                         runtime = clock.calc();
                         logger.fail(title, runtime);
                         context.failed += 1;
@@ -224,10 +229,9 @@ var Queue = /** @class */ (function () {
                         if (runtime > 0) {
                             context.testRuntime += runtime;
                         }
-                        didPass = false;
                         return [3 /*break*/, 7];
                     case 5:
-                        hijacker.releaseTestLog(title, didPass);
+                        hijacker.releaseTestLog(title, runtime, didPass);
                         return [4 /*yield*/, runHook("afterEach", title)];
                     case 6:
                         _b.sent();
@@ -238,7 +242,7 @@ var Queue = /** @class */ (function () {
         }); };
         this.config = config;
         this.logger = new logger_1.default(this.config);
-        this.hijacker = new hijacker_1.default(this.logger);
+        this.hijacker = new hijacker_1.default(this.logger, this.config);
     }
     return Queue;
 }());

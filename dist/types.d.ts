@@ -17,8 +17,6 @@ export interface Context {
 }
 export interface DevConfiguration {
     logger?: Pick<Console, "log">;
-    format?: boolean;
-    symbols?: boolean;
 }
 export interface Configuration {
     runner?: RunnerConfiguration;

@@ -12,38 +12,32 @@ export interface Colors {
 	magenta: ColorFn;
 	grey: ColorFn;
 }
+class LogCache {
+	padding = "";
+	logQueue = [];
+}
+
+const cache = new LogCache();
 
 export default class Logger {
 	logFn: LogFn;
 	colors: Colors;
-	dev: boolean;
-	format: boolean;
-	symbols: boolean;
 	volume: number;
+	padding: string;
 
 	constructor(configuration: Configuration) {
-		const { colors, volume, dev } = configuration;
+		const { colors, volume } = configuration;
 
-		if (dev) {
-			this.dev = true;
-			this.logFn = dev.logger.log;
-			this.format = dev.format;
-			this.symbols = dev.symbols;
-		} else {
-			this.dev = false;
-			this.logFn = console.log;
-			this.format = true;
-			this.symbols = true;
-		}
-
+		this.padding = cache.padding;
+		this.logQueue = cache.logQueue;
+		this.logFn = console.log;
 		this.volume = volume;
 		this.colors = createColors(colors);
 	}
 
-	private padding = "";
-
 	addPadding = () => {
 		this.padding += "  ";
+		cache.padding = this.padding;
 	};
 
 	subtractPadding = () => {
@@ -52,29 +46,35 @@ export default class Logger {
 		} else {
 			this.padding = this.padding.slice(0, this.padding.length - 2);
 		}
+		cache.padding = this.padding;
 	};
 
 	flushPadding = () => {
 		this.padding = "";
+		cache.padding = this.padding;
 	};
 
-	log = (...args: any[]) => {
-		if (this.volume >= 2) {
-			if (
-				this.volume >= 3 &&
-				this.padding.length &&
-				this.format !== false
-			) {
-				const [paddedArg, ...rest] = args;
-				this.logFn(`${this.padding}${paddedArg}`, ...rest);
-			} else {
-				this.logFn(...args);
-			}
+	public logQueue = [];
+
+	public dumpLogs = () => {
+		for (const logs of this.logQueue) {
+			this.logFn(...logs);
 		}
 	};
+	log = (...args: any[]) => {
+		if (this.volume === 3) {
+			const [paddedArg, ...rest] = args;
+			this.logQueue.push([`${this.padding}${paddedArg}`, ...rest]);
+		}
+		if (this.volume <= 2) {
+			this.logQueue.push(args);
+		}
 
-	pass = (title: string, runtime: number) => {
-		if (this.volume >= 3) {
+		cache.logQueue = this.logQueue;
+	};
+
+	pass = (title: string, runtime: number, force?: boolean) => {
+		if (this.volume >= 3 || force) {
 			this.log(
 				this.colors.green("PASSED: "),
 				title,
@@ -83,8 +83,8 @@ export default class Logger {
 		}
 	};
 
-	fail = (title: string, runtime: number) => {
-		if (this.volume >= 3) {
+	fail = (title: string, runtime: number, force?: boolean) => {
+		if (this.volume >= 3 || force) {
 			this.log(
 				this.colors.red("FAILED: "),
 				title,
@@ -97,7 +97,6 @@ export default class Logger {
 		if (this.volume >= 3) {
 			this.log(this.colors.bold(this.colors.underline(title)));
 		}
-		this.addPadding();
 	};
 
 	logTestFileName = (fileName: string) => {

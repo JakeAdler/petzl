@@ -8,12 +8,20 @@ var __spreadArrays = (this && this.__spreadArrays) || function () {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var utils_1 = require("./utils");
+var LogCache = /** @class */ (function () {
+    function LogCache() {
+        this.padding = "";
+        this.logQueue = [];
+    }
+    return LogCache;
+}());
+var cache = new LogCache();
 var Logger = /** @class */ (function () {
     function Logger(configuration) {
         var _this = this;
-        this.padding = "";
         this.addPadding = function () {
             _this.padding += "  ";
+            cache.padding = _this.padding;
         };
         this.subtractPadding = function () {
             if (_this.padding.length === 2) {
@@ -22,34 +30,40 @@ var Logger = /** @class */ (function () {
             else {
                 _this.padding = _this.padding.slice(0, _this.padding.length - 2);
             }
+            cache.padding = _this.padding;
         };
         this.flushPadding = function () {
             _this.padding = "";
+            cache.padding = _this.padding;
+        };
+        this.logQueue = [];
+        this.dumpLogs = function () {
+            for (var _i = 0, _a = _this.logQueue; _i < _a.length; _i++) {
+                var logs = _a[_i];
+                _this.logFn.apply(_this, logs);
+            }
         };
         this.log = function () {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
             }
-            if (_this.volume >= 2) {
-                if (_this.volume >= 3 &&
-                    _this.padding.length &&
-                    _this.format !== false) {
-                    var paddedArg = args[0], rest = args.slice(1);
-                    _this.logFn.apply(_this, __spreadArrays(["" + _this.padding + paddedArg], rest));
-                }
-                else {
-                    _this.logFn.apply(_this, args);
-                }
+            if (_this.volume === 3) {
+                var paddedArg = args[0], rest = args.slice(1);
+                _this.logQueue.push(__spreadArrays(["" + _this.padding + paddedArg], rest));
             }
+            if (_this.volume <= 2) {
+                _this.logQueue.push(args);
+            }
+            cache.logQueue = _this.logQueue;
         };
-        this.pass = function (title, runtime) {
-            if (_this.volume >= 3) {
+        this.pass = function (title, runtime, force) {
+            if (_this.volume >= 3 || force) {
                 _this.log(_this.colors.green("PASSED: "), title, _this.colors.green("(" + runtime + "ms)"));
             }
         };
-        this.fail = function (title, runtime) {
-            if (_this.volume >= 3) {
+        this.fail = function (title, runtime, force) {
+            if (_this.volume >= 3 || force) {
                 _this.log(_this.colors.red("FAILED: "), title, _this.colors.red("(" + runtime + "ms)"));
             }
         };
@@ -57,7 +71,6 @@ var Logger = /** @class */ (function () {
             if (_this.volume >= 3) {
                 _this.log(_this.colors.bold(_this.colors.underline(title)));
             }
-            _this.addPadding();
         };
         this.logTestFileName = function (fileName) {
             if (_this.volume >= 3) {
@@ -65,19 +78,10 @@ var Logger = /** @class */ (function () {
                 _this.logFn(_this.colors.bold(_this.colors.underline(shortPath)));
             }
         };
-        var colors = configuration.colors, volume = configuration.volume, dev = configuration.dev;
-        if (dev) {
-            this.dev = true;
-            this.logFn = dev.logger.log;
-            this.format = dev.format;
-            this.symbols = dev.symbols;
-        }
-        else {
-            this.dev = false;
-            this.logFn = console.log;
-            this.format = true;
-            this.symbols = true;
-        }
+        var colors = configuration.colors, volume = configuration.volume;
+        this.padding = cache.padding;
+        this.logQueue = cache.logQueue;
+        this.logFn = console.log;
         this.volume = volume;
         this.colors = utils_1.createColors(colors);
     }

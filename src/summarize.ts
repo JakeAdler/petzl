@@ -65,14 +65,7 @@ const summarize = (
 		colors.blue(`${process.uptime().toFixed(1)}s`),
 	];
 	const endReport: string[][] = [passed, faied, runtime, processRuntime];
-	if (configuration.dev && configuration.dev.symbols === false) {
-		log(...passed);
-		log(...faied);
-		log(...runtime);
-		log(...processRuntime);
-	} else {
-		log(table(endReport, { border: getBorderCharacters("norc") }));
-	}
+	log(table(endReport, { border: getBorderCharacters("norc") }));
 };
 
 export default summarize;

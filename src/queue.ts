@@ -26,7 +26,7 @@ export default class Queue {
 	constructor(config: Configuration) {
 		this.config = config;
 		this.logger = new Logger(this.config);
-		this.hijacker = new Hijacker(this.logger);
+		this.hijacker = new Hijacker(this.logger, this.config);
 	}
 
 	public context = {
@@ -46,7 +46,7 @@ export default class Queue {
 		this.hijacker.resetGlobalLog();
 		this.config = Object.assign(this.config, options);
 		this.logger = new Logger(this.config);
-		this.hijacker = new Hijacker(this.logger);
+		this.hijacker = new Hijacker(this.logger, this.config);
 	};
 
 	public run = async () => {
@@ -81,6 +81,7 @@ export default class Queue {
 				}
 			}
 		} finally {
+			this.logger.dumpLogs();
 			summarize(this.logger, this.context, this.config);
 		}
 	};
@@ -108,9 +109,7 @@ export default class Queue {
 
 	public runHook = async (hookName: keyof Hooks, testName: string) => {
 		this.hijacker.hijackConsoleLogs();
-
 		await this.hooks[hookName]();
-
 		this.hijacker.releaseHookLog(hookName, testName);
 	};
 
@@ -126,6 +125,7 @@ export default class Queue {
 
 	private startGroup = async (group: DescribeStartAction) => {
 		const { logger, cacheAndResetHooks } = this;
+		logger.addPadding();
 		logger.logGroupTitle(group.title);
 		cacheAndResetHooks();
 	};
@@ -150,11 +150,12 @@ export default class Queue {
 		const clock = new Clock();
 
 		let didPass: boolean;
+		let runtime: number;
 		try {
 			await cb(...args);
 
 			// Pass
-			const runtime = clock.calc();
+			runtime = clock.calc();
 
 			logger.pass(title, runtime);
 
@@ -166,7 +167,8 @@ export default class Queue {
 			didPass = true;
 		} catch (err) {
 			// Fail
-			const runtime = clock.calc();
+			didPass = false;
+			runtime = clock.calc();
 
 			logger.fail(title, runtime);
 
@@ -177,9 +179,8 @@ export default class Queue {
 			if (runtime > 0) {
 				context.testRuntime += runtime;
 			}
-			didPass = false;
 		} finally {
-			hijacker.releaseTestLog(title, didPass);
+			hijacker.releaseTestLog(title, runtime, didPass);
 			await runHook("afterEach", title);
 		}
 	};

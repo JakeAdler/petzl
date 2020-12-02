@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Hijacker = /** @class */ (function () {
-    function Hijacker(logger) {
+    function Hijacker(logger, config) {
         var _this = this;
         this.capturedLogs = [];
         this.hijackConsoleLogs = function () {
@@ -14,43 +14,36 @@ var Hijacker = /** @class */ (function () {
                 (_a = _this.capturedLogs).push.apply(_a, args);
             };
         };
+        this.releaseCaputredlogs = function () {
+            var capturedLen = _this.capturedLogs.length;
+            for (var i = 0; i < capturedLen; i++) {
+                var message = _this.capturedLogs[i];
+                if (i === capturedLen - 1) {
+                    _this.log("└ ", message);
+                }
+                else {
+                    _this.log("│ ", message);
+                }
+            }
+        };
         // Release logs captured by hooks
         this.releaseHookLog = function (hookName, testName) {
             global.console.log = _this.log;
             if (_this.capturedLogs.length && _this.volume >= 2) {
                 _this.log(_this.colors.blue(hookName + " (" + testName + "):"));
-                _this.addPadding();
-                for (var _i = 0, _a = _this.capturedLogs; _i < _a.length; _i++) {
-                    var message = _a[_i];
-                    if (_this.symbols !== false) {
-                        _this.log("- ", message);
-                    }
-                    else {
-                        _this.log(message);
-                    }
-                }
-                _this.subtractPadding();
+                _this.releaseCaputredlogs();
             }
             _this.capturedLogs = [];
         };
         // Release logs captured by test
-        this.releaseTestLog = function (title, pass) {
+        this.releaseTestLog = function (title, runtime, pass) {
             global.console.log = _this.log;
             if (_this.volume >= 2) {
-                if (_this.capturedLogs.length) {
-                    if (_this.volume === 2) {
-                        _this.log(_this.colors[pass ? "green" : "red"](title));
-                    }
-                    for (var _i = 0, _a = _this.capturedLogs; _i < _a.length; _i++) {
-                        var message = _a[_i];
-                        if (_this.symbols !== false) {
-                            _this.log("* ", message);
-                        }
-                        else {
-                            _this.log(message);
-                        }
-                    }
+                var capturedLen = _this.capturedLogs.length;
+                if (_this.volume === 2 && capturedLen) {
+                    _this[pass ? "pass" : "fail"](title, runtime, true);
                 }
+                _this.releaseCaputredlogs();
             }
             _this.capturedLogs = [];
         };
@@ -59,12 +52,11 @@ var Hijacker = /** @class */ (function () {
             _this.capturedLogs = [];
         };
         this.log = logger.log;
+        this.pass = logger.pass;
+        this.fail = logger.fail;
         this.logFn = logger.logFn;
         this.colors = logger.colors;
-        this.volume = logger.volume;
-        this.addPadding = logger.addPadding;
-        this.subtractPadding = logger.subtractPadding;
-        this.symbols = logger.symbols;
+        this.volume = config.volume;
     }
     return Hijacker;
 }());

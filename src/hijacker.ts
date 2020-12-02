@@ -1,23 +1,22 @@
 import Logger from "./logger";
-import { Hooks, LogFn } from "./types";
+import { Configuration, Hooks } from "./types";
 
 export default class Hijacker {
-	symbols: boolean;
-	logFn: LogFn;
-	log: LogFn;
+	log: Logger["log"];
+	pass: Logger["pass"];
+	fail: Logger["fail"];
+	logFn: Logger["logFn"];
 	colors: Logger["colors"];
 	volume: number;
-	addPadding: () => void;
-	subtractPadding: () => void;
+	symbols: boolean;
 
-	constructor(logger: Logger) {
+	constructor(logger: Logger, config: Configuration) {
 		this.log = logger.log;
+		this.pass = logger.pass;
+		this.fail = logger.fail;
 		this.logFn = logger.logFn;
 		this.colors = logger.colors;
-		this.volume = logger.volume;
-		this.addPadding = logger.addPadding;
-		this.subtractPadding = logger.subtractPadding;
-		this.symbols = logger.symbols;
+		this.volume = config.volume;
 	}
 
 	public capturedLogs = [];
@@ -28,40 +27,37 @@ export default class Hijacker {
 		};
 	};
 
+	private releaseCaputredlogs = () => {
+		const capturedLen = this.capturedLogs.length;
+		for (let i = 0; i < capturedLen; i++) {
+			const message = this.capturedLogs[i];
+			if (i === capturedLen - 1) {
+				this.log("└ ", message);
+			} else {
+				this.log("│ ", message);
+			}
+		}
+	};
 	// Release logs captured by hooks
 	public releaseHookLog = (hookName: keyof Hooks, testName: string) => {
 		global.console.log = this.log;
 		if (this.capturedLogs.length && this.volume >= 2) {
 			this.log(this.colors.blue(`${hookName} (${testName}):`));
-			this.addPadding();
-			for (const message of this.capturedLogs) {
-				if (this.symbols !== false) {
-					this.log("- ", message);
-				} else {
-					this.log(message);
-				}
-			}
-			this.subtractPadding();
+			this.releaseCaputredlogs();
 		}
 		this.capturedLogs = [];
 	};
 
 	// Release logs captured by test
-	public releaseTestLog = (title: string, pass: boolean) => {
+	public releaseTestLog = (title: string, runtime: number, pass: boolean) => {
 		global.console.log = this.log;
 		if (this.volume >= 2) {
-			if (this.capturedLogs.length) {
-				if (this.volume === 2) {
-					this.log(this.colors[pass ? "green" : "red"](title));
-				}
-				for (const message of this.capturedLogs) {
-					if (this.symbols !== false) {
-						this.log("* ", message);
-					} else {
-						this.log(message);
-					}
-				}
+			const capturedLen = this.capturedLogs.length;
+
+			if (this.volume === 2 && capturedLen) {
+				this[pass ? "pass" : "fail"](title, runtime, true);
 			}
+			this.releaseCaputredlogs();
 		}
 		this.capturedLogs = [];
 	};
