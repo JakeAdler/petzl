@@ -9,6 +9,7 @@ export default class Hijacker {
 	colors: Logger["colors"];
 	volume: number;
 	symbols: boolean;
+	dev: boolean;
 
 	constructor(logger: Logger, config: Configuration) {
 		this.log = logger.log;
@@ -17,14 +18,21 @@ export default class Hijacker {
 		this.logFn = logger.logFn;
 		this.colors = logger.colors;
 		this.volume = config.volume;
+		this.dev = config.dev === false ? false : true;
 	}
 
 	public capturedLogs = [];
 
 	public hijackConsoleLogs = () => {
-		global.console.log = (...args: any[]) => {
-			this.capturedLogs.push(...args);
-		};
+		if (!this.dev) {
+			global.console.log = (...args: any[]) => {
+				this.capturedLogs.push(...args);
+			};
+		} else {
+			global.console.log = (...args: any[]) => {
+				this.logFn(...args);
+			};
+		}
 	};
 
 	private releaseCaputredlogs = () => {

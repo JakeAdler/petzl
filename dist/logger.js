@@ -41,7 +41,6 @@ var Logger = /** @class */ (function () {
             _this.padding = "";
             cache.update(_this);
         };
-        this.logQueue = [];
         this.dumpLogs = function () {
             for (var _i = 0, _a = _this.logQueue; _i < _a.length; _i++) {
                 var logs = _a[_i];
@@ -86,10 +85,17 @@ var Logger = /** @class */ (function () {
         this.logFileOrDirname = function (fileOrDir, name) {
             _this.logFn(_this.colors.bold(_this.colors.underline("Running " + fileOrDir + " " + name)));
         };
-        var colors = configuration.colors, volume = configuration.volume;
-        this.padding = cache.padding;
-        this.logQueue = cache.logQueue;
-        this.logFn = console.log;
+        var colors = configuration.colors, volume = configuration.volume, dev = configuration.dev;
+        if (dev !== false) {
+            this.logFn = dev.logger.log;
+            this.padding = "";
+            this.logQueue = [];
+        }
+        else {
+            this.logFn = console.log;
+            this.padding = cache.padding;
+            this.logQueue = cache.logQueue;
+        }
         this.volume = volume;
         this.colors = utils_1.createColors(colors);
     }

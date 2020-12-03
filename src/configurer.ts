@@ -82,7 +82,7 @@ export default class Configurer {
 			if (!runnerConfig.match) {
 				throw new ConfigError(
 					"runner.match",
-					"is required to use the 'matchGlobs' runner"
+					"is required to use the 'matchExtensions' runner"
 				);
 			} else {
 				if (!Array.isArray(runnerConfig.match)) {
@@ -102,19 +102,20 @@ export default class Configurer {
 			// validate
 		} else if (isSequencerConfig(runnerConfig)) {
 			// validate sequencer config
-			if (!runnerConfig.include) {
+			//TODO: Validate 'ignore' option
+			if (!runnerConfig.sequence) {
 				throw new ConfigError(
-					"runner.include",
+					"runner.sequence",
 					"is required to use the 'sequencer' runner"
 				);
 			} else {
-				if (!Array.isArray(runnerConfig.include)) {
+				if (!Array.isArray(runnerConfig.sequence)) {
 					throw new ConfigError(
-						"runner.include",
+						"runner.sequence",
 						"is required to be an Array"
 					);
 				} else {
-					runnerConfig.include.forEach((fileOrDir) => {
+					runnerConfig.sequence.forEach((fileOrDir) => {
 						const exists = fs.existsSync(fileOrDir);
 						if (!exists) {
 							throw new ConfigError(

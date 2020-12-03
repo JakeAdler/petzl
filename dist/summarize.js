@@ -29,17 +29,21 @@ var Summarizer = /** @class */ (function () {
             return table_1.table(endReport, { border: table_1.getBorderCharacters("norc") });
         };
         this.updateSummary = function (context, queue) {
-            var numTests = queue.filter(function (action) {
-                if (types_1.isItAction(action)) {
-                    return action;
-                }
-            }).length;
-            _this.logger.logFn(_this.logger.colors.yelllow("Running"), context.passed + context.failed + "/" + numTests);
-            _this.logger.logFn(_this.createTable(context));
+            if (!_this.config.dev) {
+                var numTests = queue.filter(function (action) {
+                    if (types_1.isItAction(action)) {
+                        return action;
+                    }
+                }).length;
+                _this.logger.logFn(_this.logger.colors.yelllow("Running"), context.passed + context.failed + "/" + numTests);
+                _this.logger.logFn(_this.createTable(context));
+            }
         };
         this.clearSummary = function () {
-            process.stdout.moveCursor(0, -11);
-            process.stdout.clearScreenDown();
+            if (!_this.config.dev) {
+                process.stdout.moveCursor(0, -11);
+                process.stdout.clearScreenDown();
+            }
         };
         this.endReport = function (context) {
             var _a = _this.logger, flushPadding = _a.flushPadding, log = _a.logFn, colors = _a.colors;
@@ -79,6 +83,7 @@ var Summarizer = /** @class */ (function () {
             log(_this.createTable(context));
         };
         this.logger = logger;
+        this.config = configuration;
     }
     return Summarizer;
 }());

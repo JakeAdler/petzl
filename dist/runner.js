@@ -64,12 +64,6 @@ var Runner = /** @class */ (function () {
         };
         this.runList = function (paths) {
             var realPaths = _this.getRealPaths(paths);
-            global.console.log = function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i] = arguments[_i];
-                }
-            };
             var _loop_1 = function (file) {
                 _this.queue.pushAction({
                     type: "doOnce",
@@ -148,11 +142,10 @@ var Runner = /** @class */ (function () {
             _this.runList(allPaths);
         };
         this.sequencer = function (config) {
-            /* const sequence = this.config.runner.run; */
-            var include = config.include, exclude = config.exclude;
+            var sequence = config.sequence, ignore = config.ignore;
             var allSequencedFiles = [];
-            for (var _i = 0, include_1 = include; _i < include_1.length; _i++) {
-                var fileOrDir = include_1[_i];
+            for (var _i = 0, sequence_1 = sequence; _i < sequence_1.length; _i++) {
+                var fileOrDir = sequence_1[_i];
                 var isDir = fs_1.default.statSync(fileOrDir).isDirectory();
                 if (isDir) {
                     allSequencedFiles.push.apply(allSequencedFiles, _this.getAllFiles(fileOrDir));
@@ -161,13 +154,13 @@ var Runner = /** @class */ (function () {
                     allSequencedFiles.push(fileOrDir);
                 }
             }
-            if (exclude) {
+            if (ignore) {
                 var spliceFile = function (file) {
                     var index = allSequencedFiles.indexOf(file);
                     allSequencedFiles.splice(index, 1);
                 };
-                for (var _a = 0, exclude_1 = exclude; _a < exclude_1.length; _a++) {
-                    var fileOrDir = exclude_1[_a];
+                for (var _a = 0, ignore_1 = ignore; _a < ignore_1.length; _a++) {
+                    var fileOrDir = ignore_1[_a];
                     var isDir = fs_1.default.statSync(fileOrDir).isDirectory();
                     if (isDir) {
                         var allFilesInDir = _this.getAllFiles(fileOrDir);

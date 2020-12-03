@@ -5,5 +5,4 @@ export {
 	afterEach,
 	doOnce,
 	configure,
-	Petzl,
 } from "./petzl";

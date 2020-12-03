@@ -40,13 +40,14 @@ export interface Configuration {
 
 export interface RunnerConfiguration {
 	use: keyof Runner;
+	[key: string]: any;
 }
 
 // Runner configuration
 export interface SequencerConfiguration extends RunnerConfiguration {
 	use: "sequencer";
-	include: string[];
-	exclude?: string[];
+	sequence: string[];
+	ignore?: string[];
 }
 
 export interface MatchExtensionsConfiguration extends RunnerConfiguration {

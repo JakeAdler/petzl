@@ -6,9 +6,11 @@ import { getBorderCharacters, table } from "table";
 
 export default class Summarizer {
 	logger: Logger;
+	config: Configuration;
 
 	constructor(logger: Logger, configuration: Configuration) {
 		this.logger = logger;
+		this.config = configuration;
 	}
 
 	createTable = (context: Context) => {
@@ -34,21 +36,25 @@ export default class Summarizer {
 	};
 
 	updateSummary = (context: Context, queue: Action[]) => {
-		const numTests = queue.filter((action: Action) => {
-			if (isItAction(action)) {
-				return action;
-			}
-		}).length;
-		this.logger.logFn(
-			this.logger.colors.yelllow("Running"),
-			`${context.passed + context.failed}/${numTests}`
-		);
-		this.logger.logFn(this.createTable(context));
+		if (!this.config.dev) {
+			const numTests = queue.filter((action: Action) => {
+				if (isItAction(action)) {
+					return action;
+				}
+			}).length;
+			this.logger.logFn(
+				this.logger.colors.yelllow("Running"),
+				`${context.passed + context.failed}/${numTests}`
+			);
+			this.logger.logFn(this.createTable(context));
+		}
 	};
 
 	clearSummary = () => {
-		process.stdout.moveCursor(0, -11);
-		process.stdout.clearScreenDown();
+		if (!this.config.dev) {
+			process.stdout.moveCursor(0, -11);
+			process.stdout.clearScreenDown();
+		}
 	};
 
 	endReport = (context: Context) => {

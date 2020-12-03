@@ -60,7 +60,7 @@ var Configurer = /** @class */ (function () {
                     throw new types_1.ConfigError("runner.root", "is required to use the 'matchExtensions' runner");
                 }
                 if (!runnerConfig.match) {
-                    throw new types_1.ConfigError("runner.match", "is required to use the 'matchGlobs' runner");
+                    throw new types_1.ConfigError("runner.match", "is required to use the 'matchExtensions' runner");
                 }
                 else {
                     if (!Array.isArray(runnerConfig.match)) {
@@ -81,15 +81,16 @@ var Configurer = /** @class */ (function () {
             }
             else if (types_1.isSequencerConfig(runnerConfig)) {
                 // validate sequencer config
-                if (!runnerConfig.include) {
-                    throw new types_1.ConfigError("runner.include", "is required to use the 'sequencer' runner");
+                //TODO: Validate 'ignore' option
+                if (!runnerConfig.sequence) {
+                    throw new types_1.ConfigError("runner.sequence", "is required to use the 'sequencer' runner");
                 }
                 else {
-                    if (!Array.isArray(runnerConfig.include)) {
-                        throw new types_1.ConfigError("runner.include", "is required to be an Array");
+                    if (!Array.isArray(runnerConfig.sequence)) {
+                        throw new types_1.ConfigError("runner.sequence", "is required to be an Array");
                     }
                     else {
-                        runnerConfig.include.forEach(function (fileOrDir) {
+                        runnerConfig.sequence.forEach(function (fileOrDir) {
                             var exists = fs_1.default.existsSync(fileOrDir);
                             if (!exists) {
                                 throw new types_1.ConfigError("runner.include", "path in sequence does not exist -> \"" + fileOrDir + "\"");

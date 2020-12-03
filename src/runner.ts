@@ -167,12 +167,11 @@ export default class Runner {
 	};
 
 	public sequencer = (config: SequencerConfiguration) => {
-		/* const sequence = this.config.runner.run; */
-		const { include, exclude } = config;
+		const { sequence, ignore } = config;
 
 		let allSequencedFiles: string[] = [];
 
-		for (const fileOrDir of include) {
+		for (const fileOrDir of sequence) {
 			const isDir = fs.statSync(fileOrDir).isDirectory();
 			if (isDir) {
 				allSequencedFiles.push(...this.getAllFiles(fileOrDir));
@@ -181,12 +180,12 @@ export default class Runner {
 			}
 		}
 
-		if (exclude) {
+		if (ignore) {
 			const spliceFile = (file: string) => {
 				const index = allSequencedFiles.indexOf(file);
 				allSequencedFiles.splice(index, 1);
 			};
-			for (const fileOrDir of exclude) {
+			for (const fileOrDir of ignore) {
 				const isDir = fs.statSync(fileOrDir).isDirectory();
 				if (isDir) {
 					const allFilesInDir = this.getAllFiles(fileOrDir);

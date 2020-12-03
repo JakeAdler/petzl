@@ -8,6 +8,7 @@ export default class Hijacker {
     colors: Logger["colors"];
     volume: number;
     symbols: boolean;
+    dev: boolean;
     constructor(logger: Logger, config: Configuration);
     capturedLogs: any[];
     hijackConsoleLogs: () => void;

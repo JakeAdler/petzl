@@ -1,1 +1,1 @@
-export { it, describe, beforeEach, afterEach, doOnce, configure, Petzl, } from "./petzl";
+export { it, describe, beforeEach, afterEach, doOnce, configure, } from "./petzl";

@@ -30,13 +30,21 @@ export default class Logger {
 	colors: Colors;
 	volume: number;
 	padding: string;
+	logQueue: any[];
 
 	constructor(configuration: Configuration) {
-		const { colors, volume } = configuration;
+		const { colors, volume, dev } = configuration;
 
-		this.padding = cache.padding;
-		this.logQueue = cache.logQueue;
-		this.logFn = console.log;
+		if (dev !== false) {
+			this.logFn = dev.logger.log;
+			this.padding = "";
+			this.logQueue = [];
+		} else {
+			this.logFn = console.log;
+			this.padding = cache.padding;
+			this.logQueue = cache.logQueue;
+		}
+
 		this.volume = volume;
 		this.colors = createColors(colors);
 	}
@@ -59,8 +67,6 @@ export default class Logger {
 		this.padding = "";
 		cache.update(this);
 	};
-
-	public logQueue = [];
 
 	public dumpLogs = () => {
 		for (const logs of this.logQueue) {

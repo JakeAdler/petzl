@@ -15,11 +15,11 @@ export default class Logger {
     colors: Colors;
     volume: number;
     padding: string;
+    logQueue: any[];
     constructor(configuration: Configuration);
     addPadding: () => void;
     subtractPadding: () => void;
     flushPadding: () => void;
-    logQueue: any[];
     dumpLogs: () => void;
     log: (...args: any[]) => void;
     pass: (title: string, runtime: number, force?: boolean) => void;

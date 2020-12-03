@@ -7,6 +7,7 @@ export default class Queue {
     logger: Logger;
     hijacker: Hijacker;
     summarizer: Summarizer;
+    dev: boolean;
     constructor(config: Configuration);
     context: {
         passed: number;

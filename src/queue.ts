@@ -23,9 +23,11 @@ export default class Queue {
 	logger: Logger;
 	hijacker: Hijacker;
 	summarizer: Summarizer;
+	dev: boolean;
 
 	constructor(config: Configuration) {
 		this.config = config;
+		this.dev = config.dev === false ? false : true;
 		this.logger = new Logger(this.config);
 		this.hijacker = new Hijacker(this.logger, this.config);
 		this.summarizer = new Summarizer(this.logger, this.config);
@@ -54,16 +56,19 @@ export default class Queue {
 	public run = async () => {
 		const { queue, evaluateTest, startGroup, stopGroup } = this;
 
-		this.summarizer.updateSummary(this.context, this.queue);
+		if (!this.dev) {
+			this.summarizer.updateSummary(this.context, queue);
+		}
 
 		try {
 			for (let i = 0; i < queue.length; i++) {
 				const action = queue[i];
 
 				this.summarizer.clearSummary();
-
-				if (i !== queue.length - 1) {
-					this.summarizer.updateSummary(this.context, this.queue);
+				if (!this.dev) {
+					if (i !== queue.length - 1) {
+						this.summarizer.updateSummary(this.context, this.queue);
+					}
 				}
 
 				if (isHookAction(action)) {

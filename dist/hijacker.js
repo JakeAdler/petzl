@@ -5,14 +5,25 @@ var Hijacker = /** @class */ (function () {
         var _this = this;
         this.capturedLogs = [];
         this.hijackConsoleLogs = function () {
-            global.console.log = function () {
-                var _a;
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i] = arguments[_i];
-                }
-                (_a = _this.capturedLogs).push.apply(_a, args);
-            };
+            if (!_this.dev) {
+                global.console.log = function () {
+                    var _a;
+                    var args = [];
+                    for (var _i = 0; _i < arguments.length; _i++) {
+                        args[_i] = arguments[_i];
+                    }
+                    (_a = _this.capturedLogs).push.apply(_a, args);
+                };
+            }
+            else {
+                global.console.log = function () {
+                    var args = [];
+                    for (var _i = 0; _i < arguments.length; _i++) {
+                        args[_i] = arguments[_i];
+                    }
+                    _this.logFn.apply(_this, args);
+                };
+            }
         };
         this.releaseCaputredlogs = function () {
             var capturedLen = _this.capturedLogs.length;
@@ -57,6 +68,7 @@ var Hijacker = /** @class */ (function () {
         this.logFn = logger.logFn;
         this.colors = logger.colors;
         this.volume = config.volume;
+        this.dev = config.dev === false ? false : true;
     }
     return Hijacker;
 }());
