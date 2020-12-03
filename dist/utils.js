@@ -45,11 +45,13 @@ var createColors = function (real) {
             red: function (args) { return args; },
             blue: function (args) { return args; },
             green: function (args) { return args; },
+            yelllow: function (args) { return args; },
             magenta: function (args) { return args; },
             grey: function (args) { return args; },
         };
     }
     else {
+        // prettier-ignore-start
         var reset_1 = "\x1b[0m";
         return {
             underline: function () {
@@ -87,6 +89,13 @@ var createColors = function (real) {
                 }
                 return "\u001B[32m" + args + reset_1;
             },
+            yelllow: function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                return "\u001B[33m" + args + reset_1;
+            },
             magenta: function () {
                 var args = [];
                 for (var _i = 0; _i < arguments.length; _i++) {
@@ -102,6 +111,7 @@ var createColors = function (real) {
                 return "\u001B[90m" + args + reset_1;
             },
         };
+        // prettier-ignore-end;
     }
 };
 exports.createColors = createColors;

@@ -25,6 +25,9 @@ const data = {
 		cmon: "now",
 	},
 };
+doOnce(async () => {
+	await sleep()
+})
 it("Non grouped test", async () => {
 	console.log("haha");
 	console.log(data);

@@ -64,6 +64,12 @@ var Runner = /** @class */ (function () {
         };
         this.runList = function (paths) {
             var realPaths = _this.getRealPaths(paths);
+            global.console.log = function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+            };
             var _loop_1 = function (file) {
                 _this.queue.pushAction({
                     type: "doOnce",
@@ -82,30 +88,41 @@ var Runner = /** @class */ (function () {
         this.entryPoint = function (config) {
             var root = config.root;
             var cliInput = process.argv[2];
-            var pathWithRoot = _this.joinPathAndRoot(cliInput, root);
+            if (!cliInput) {
+                if (root) {
+                    var allFiles = _this.getAllFiles(root);
+                    _this.runList(allFiles);
+                    return;
+                }
+                else {
+                    throw new Error("Must provide 'runner.root' option in config file, or path to file or directory as command line argument ");
+                }
+            }
+            var baseDir = cliInput.split("/")[0];
+            var userPath = baseDir === root ? cliInput : _this.joinPathAndRoot(cliInput, root);
             var isDir;
             var isFile;
             try {
-                var fileArgStat = fs_1.default.statSync(pathWithRoot);
+                var fileArgStat = fs_1.default.statSync(userPath);
                 isDir = fileArgStat.isDirectory();
                 isFile = fileArgStat.isFile();
             }
             catch (_a) { }
             if (isFile) {
                 // Run file
-                _this.logger.logFileOrDirname("file", pathWithRoot);
-                var filePath = fs_1.default.realpathSync(pathWithRoot);
+                _this.logger.logFileOrDirname("file", userPath);
+                var filePath = fs_1.default.realpathSync(userPath);
                 _this.runList([filePath]);
             }
             else if (isDir) {
                 // Run directory
-                _this.logger.logFileOrDirname("directory", pathWithRoot);
-                var allFilesInDir = _this.getAllFiles(pathWithRoot);
+                _this.logger.logFileOrDirname("directory", userPath);
+                var allFilesInDir = _this.getAllFiles(userPath);
                 _this.runList(allFilesInDir);
             }
-            else if (root && cliInput) {
+            else if (root) {
                 var allFiles = _this.getAllFiles(root);
-                var chars_1 = cliInput.split("");
+                var chars_1 = userPath.split("");
                 var regexStr = chars_1.reduce(function (prev, acc, i) {
                     if (i === chars_1.length - 1) {
                         prev += acc;
@@ -123,13 +140,6 @@ var Runner = /** @class */ (function () {
                     }
                 });
                 _this.runList(matchingFiles);
-            }
-            else if (root) {
-                var allFiles = _this.getAllFiles(root);
-                _this.runList(allFiles);
-            }
-            else {
-                throw new Error("Must provide 'runner.root' option in config file, or path to file or directory as command line argument ");
             }
         };
         this.matchExtensions = function (config) {

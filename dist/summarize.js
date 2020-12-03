@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var types_1 = require("./types");
 var util_1 = require("util");
 var assert_1 = require("assert");
 var table_1 = require("table");
@@ -27,11 +28,17 @@ var Summarizer = /** @class */ (function () {
             var endReport = [passed, faied, runtime, processRuntime];
             return table_1.table(endReport, { border: table_1.getBorderCharacters("norc") });
         };
-        this.updateSummary = function (context) {
+        this.updateSummary = function (context, queue) {
+            var numTests = queue.filter(function (action) {
+                if (types_1.isItAction(action)) {
+                    return action;
+                }
+            }).length;
+            _this.logger.logFn(_this.logger.colors.yelllow("Running"), context.passed + context.failed + "/" + numTests);
             _this.logger.logFn(_this.createTable(context));
         };
         this.clearSummary = function () {
-            process.stdout.moveCursor(0, -10);
+            process.stdout.moveCursor(0, -11);
             process.stdout.clearScreenDown();
         };
         this.endReport = function (context) {

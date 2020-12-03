@@ -100,28 +100,43 @@ export default class Runner {
 	public entryPoint = (config: EntryPointConfiguration) => {
 		const { root } = config;
 		const cliInput = process.argv[2];
-		const pathWithRoot = this.joinPathAndRoot(cliInput, root);
+
+		if (!cliInput) {
+			if (root) {
+				const allFiles = this.getAllFiles(root);
+				this.runList(allFiles);
+				return;
+			} else {
+				throw new Error(
+					"Must provide 'runner.root' option in config file, or path to file or directory as command line argument "
+				);
+			}
+		}
+
+		const baseDir = cliInput.split("/")[0];
+		const userPath =
+			baseDir === root ? cliInput : this.joinPathAndRoot(cliInput, root);
 		let isDir: boolean;
 		let isFile: boolean;
 		try {
-			const fileArgStat = fs.statSync(pathWithRoot);
+			const fileArgStat = fs.statSync(userPath);
 			isDir = fileArgStat.isDirectory();
 			isFile = fileArgStat.isFile();
 		} catch {}
 		if (isFile) {
 			// Run file
-			this.logger.logFileOrDirname("file", pathWithRoot);
-			const filePath = fs.realpathSync(pathWithRoot);
+			this.logger.logFileOrDirname("file", userPath);
+			const filePath = fs.realpathSync(userPath);
 			this.runList([filePath]);
 		} else if (isDir) {
 			// Run directory
-			this.logger.logFileOrDirname("directory", pathWithRoot);
-			const allFilesInDir = this.getAllFiles(pathWithRoot);
+			this.logger.logFileOrDirname("directory", userPath);
+			const allFilesInDir = this.getAllFiles(userPath);
 			this.runList(allFilesInDir);
-		} else if (root && cliInput) {
+		} else if (root) {
 			const allFiles = this.getAllFiles(root);
 
-			const chars = cliInput.split("");
+			const chars = userPath.split("");
 
 			const regexStr = chars.reduce((prev, acc, i) => {
 				if (i === chars.length - 1) {
@@ -142,13 +157,6 @@ export default class Runner {
 			});
 
 			this.runList(matchingFiles);
-		} else if (root) {
-			const allFiles = this.getAllFiles(root);
-			this.runList(allFiles);
-		} else {
-			throw new Error(
-				"Must provide 'runner.root' option in config file, or path to file or directory as command line argument "
-			);
 		}
 	};
 

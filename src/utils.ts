@@ -46,10 +46,12 @@ export const createColors = (real: boolean): Logger["colors"] => {
 			red: (args) => args,
 			blue: (args) => args,
 			green: (args) => args,
+			yelllow: (args) => args,
 			magenta: (args) => args,
 			grey: (args) => args,
 		};
 	} else {
+		// prettier-ignore-start
 		const reset = "\x1b[0m";
 		return {
 			underline: (...args) => `\x1b[4m${args}${reset}`,
@@ -57,8 +59,10 @@ export const createColors = (real: boolean): Logger["colors"] => {
 			red: (...args) => `\x1b[31m${args}${reset}`,
 			blue: (...args) => `\x1b[34m${args}${reset}`,
 			green: (...args) => `\x1b[32m${args}${reset}`,
+			yelllow: (...args) => `\x1b[33m${args}${reset}`,
 			magenta: (...args) => `\x1b[35m${args}${reset}`,
 			grey: (...args) => `\x1b[90m${args}${reset}`,
 		};
+		// prettier-ignore-end;
 	}
 };

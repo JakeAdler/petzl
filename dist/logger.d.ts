@@ -7,6 +7,7 @@ export interface Colors {
     blue: ColorFn;
     bold: ColorFn;
     magenta: ColorFn;
+    yelllow: ColorFn;
     grey: ColorFn;
 }
 export default class Logger {

@@ -80,7 +80,7 @@ var Queue = /** @class */ (function () {
                 switch (_b.label) {
                     case 0:
                         _a = this, queue = _a.queue, evaluateTest = _a.evaluateTest, startGroup = _a.startGroup, stopGroup = _a.stopGroup;
-                        this.summarizer.updateSummary(this.context);
+                        this.summarizer.updateSummary(this.context, this.queue);
                         _b.label = 1;
                     case 1:
                         _b.trys.push([1, , 15, 16]);
@@ -91,7 +91,7 @@ var Queue = /** @class */ (function () {
                         action = queue[i];
                         this.summarizer.clearSummary();
                         if (i !== queue.length - 1) {
-                            this.summarizer.updateSummary(this.context);
+                            this.summarizer.updateSummary(this.context, this.queue);
                         }
                         if (!types_1.isHookAction(action)) return [3 /*break*/, 4];
                         return [4 /*yield*/, action.cb()];

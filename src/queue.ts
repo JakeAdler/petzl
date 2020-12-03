@@ -54,7 +54,7 @@ export default class Queue {
 	public run = async () => {
 		const { queue, evaluateTest, startGroup, stopGroup } = this;
 
-		this.summarizer.updateSummary(this.context);
+		this.summarizer.updateSummary(this.context, this.queue);
 
 		try {
 			for (let i = 0; i < queue.length; i++) {
@@ -63,7 +63,7 @@ export default class Queue {
 				this.summarizer.clearSummary();
 
 				if (i !== queue.length - 1) {
-					this.summarizer.updateSummary(this.context);
+					this.summarizer.updateSummary(this.context, this.queue);
 				}
 
 				if (isHookAction(action)) {

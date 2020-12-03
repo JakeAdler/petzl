@@ -1,4 +1,4 @@
-import { Configuration, Context } from "./types";
+import { Action, Configuration, Context, isItAction } from "./types";
 import Logger from "./logger";
 import { inspect } from "util";
 import { AssertionError } from "assert";
@@ -33,12 +33,21 @@ export default class Summarizer {
 		return table(endReport, { border: getBorderCharacters("norc") });
 	};
 
-	updateSummary = (context: Context) => {
+	updateSummary = (context: Context, queue: Action[]) => {
+		const numTests = queue.filter((action: Action) => {
+			if (isItAction(action)) {
+				return action;
+			}
+		}).length;
+		this.logger.logFn(
+			this.logger.colors.yelllow("Running"),
+			`${context.passed + context.failed}/${numTests}`
+		);
 		this.logger.logFn(this.createTable(context));
 	};
 
 	clearSummary = () => {
-		process.stdout.moveCursor(0, -10);
+		process.stdout.moveCursor(0, -11);
 		process.stdout.clearScreenDown();
 	};
 

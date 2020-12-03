@@ -1,5 +1,5 @@
 module.exports = {
-	volume: 3,
+	volume: 1,
 	runner: {
 		use: "entryPoint",
 		root: "test",

@@ -1,6 +1,5 @@
 import { LogFn, Configuration } from "./types";
 import { createColors } from "./utils";
-import readline from "readline";
 
 export type ColorFn = (...args: any[]) => string;
 
@@ -11,6 +10,7 @@ export interface Colors {
 	blue: ColorFn;
 	bold: ColorFn;
 	magenta: ColorFn;
+	yelllow: ColorFn;
 	grey: ColorFn;
 }
 class LogCache {
