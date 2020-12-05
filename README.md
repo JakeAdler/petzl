@@ -7,5 +7,4 @@
   <a href="#">Features</a> |
   <a href="#">Recipes</a>
   <br><br>
-  <img src="https://github.com/JakeAdler/petzl/blob/master/harness.jpg"/>
 </h3>
