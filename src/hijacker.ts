@@ -3,6 +3,7 @@ import { Configuration, Hooks } from "./types";
 
 export default class Hijacker {
 	log: Logger["log"];
+	clog: Console["log"];
 	pass: Logger["pass"];
 	fail: Logger["fail"];
 	logFn: Logger["logFn"];
@@ -13,6 +14,7 @@ export default class Hijacker {
 
 	constructor(logger: Logger, config: Configuration) {
 		this.log = logger.log;
+		this.clog = console.log;
 		this.pass = logger.pass;
 		this.fail = logger.fail;
 		this.logFn = logger.logFn;
@@ -36,6 +38,7 @@ export default class Hijacker {
 	};
 
 	private releaseCaputredlogs = () => {
+		global.console.log = this.log;
 		const capturedLen = this.capturedLogs.length;
 		for (let i = 0; i < capturedLen; i++) {
 			const message = this.capturedLogs[i];
@@ -46,9 +49,9 @@ export default class Hijacker {
 			}
 		}
 	};
+
 	// Release logs captured by hooks
-	public releaseHookLog = (hookName: keyof Hooks, testName: string) => {
-		global.console.log = this.log;
+	public releaseHookLog = (hookName: keyof Hooks, testName?: string) => {
 		if (this.capturedLogs.length && this.volume >= 2) {
 			this.log(this.colors.blue(`${hookName} (${testName}):`));
 			this.releaseCaputredlogs();
@@ -56,9 +59,16 @@ export default class Hijacker {
 		this.capturedLogs = [];
 	};
 
+	public releaseDoOnceLog = () => {
+		if (this.capturedLogs.length && this.volume >= 2) {
+			this.log(this.colors.magenta(`doOnce:`));
+			this.releaseCaputredlogs();
+		}
+		this.capturedLogs = [];
+	};
+
 	// Release logs captured by test
 	public releaseTestLog = (title: string, runtime: number, pass: boolean) => {
-		global.console.log = this.log;
 		if (this.volume >= 2) {
 			const capturedLen = this.capturedLogs.length;
 
@@ -71,7 +81,7 @@ export default class Hijacker {
 	};
 
 	public resetGlobalLog = () => {
-		global.console.log = this.logFn;
+		global.console.log = this.clog;
 		this.capturedLogs = [];
 	};
 }

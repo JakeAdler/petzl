@@ -1,6 +1,6 @@
 {
 	"name": "petzl",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"description": " A lightweight testing harness for Node.js applications.",
 	"bin": {
 		"petzl": "petzl.js"

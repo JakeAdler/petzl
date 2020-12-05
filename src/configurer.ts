@@ -123,15 +123,15 @@ export default class Configurer {
 		}
 
 		// volume
-		if (config.colors) {
-			if (typeof config.colors !== "string") {
-				throw new ConfigError("colors", "Must be a string");
+		if (config.volume) {
+			if (typeof config.volume !== "number") {
+				throw new ConfigError("volume", "Must be a number");
 			}
 		}
 
 		// bubbleHooks
 		if (config.bubbleHooks) {
-			if (typeof config.colors !== "boolean") {
+			if (typeof config.bubbleHooks !== "boolean") {
 				throw new ConfigError("bubbleHooks", "Must be a boolean");
 			}
 		}
@@ -206,6 +206,7 @@ export default class Configurer {
 					});
 				}
 			}
+		} else {
 		}
 	};
 }

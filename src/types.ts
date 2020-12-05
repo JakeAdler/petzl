@@ -22,7 +22,7 @@ export interface Context {
 	passed: number;
 	failed: number;
 	testRuntime: number;
-	errors: any[];
+	errors: [any, string][];
 }
 
 // Configuration

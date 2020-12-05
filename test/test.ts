@@ -1,17 +1,15 @@
-import { it, doOnce } from "../dist";
+import { it, beforeEach, doOnce } from "../dist";
 import { petzl, store } from "../test-utils/petzl";
 import { add } from "../test-utils/spied-methods";
 import assert from "assert";
 
 const sleep = async () => new Promise((resolve) => setTimeout(resolve, 1200));
 
-it("show logs", async () => {
-	await petzl.collector.collect();
-	/* assert(add.callCount === 1); */
-	/* assert.deepStrictEqual(add.args, [[1, 1, 2]]); */
-	assert(1);
-});
 doOnce(async () => {
-	await sleep();
-	console.log(store);
+	await petzl.collector.collect();
 });
+
+it("show logs", async () => {
+	console.log(store.getLogs());
+});
+

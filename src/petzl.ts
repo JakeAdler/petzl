@@ -27,9 +27,7 @@ class Petzl {
 	public doOnce = (cb: AnyCB) => {
 		this.runner.pushAction({
 			type: "doOnce",
-			cb: async () => {
-				return await cb();
-			},
+			cb,
 		});
 	};
 

@@ -2,7 +2,7 @@ import { petzl } from "../petzl";
 import { add } from "../spied-methods";
 const { it } = petzl;
 
-it("1 + 1  === 2", () => {
+it("1 + 1 === 2", () => {
 	add(1, 1, 2);
 });
 

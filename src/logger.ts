@@ -69,10 +69,16 @@ export default class Logger {
 	};
 
 	public dumpLogs = () => {
-		for (const logs of this.logQueue) {
-			this.logFn(...logs);
+		for (let i = 0; i < this.logQueue.length; i++) {
+			const logs = this.logQueue[i];
+			if (i === this.logQueue.length - 1) {
+				this.logFn(...logs, "\n");
+			} else {
+				this.logFn(...logs);
+			}
 		}
 	};
+
 	log = (...args: any[]) => {
 		if (this.volume === 3) {
 			const [paddedArg, ...rest] = args;

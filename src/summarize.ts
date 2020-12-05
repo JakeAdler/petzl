@@ -73,33 +73,35 @@ export default class Summarizer {
 			for (let i = 0; i < errors.length; i++) {
 				const [error, title] = errors[i];
 
-				log(colors.red(colors.bold(`Failed:  ${title}`)));
+				log(colors.red(colors.bold(`Failed: ${title}`)));
 
 				this.logger.addPadding();
-				const pathWithLineNumber = error.stack
-					.split("at ")[1]
-					.replace(process.cwd() + "/", "");
-				log(`@ ${pathWithLineNumber.trim()}`);
-				const expected =
-					typeof error.expected === "object"
-						? inspect(error.expected, false, 1)
-						: error.expected;
+				if (error instanceof Error) {
+					const pathWithLineNumber = error.stack
+						.split("at ")[1]
+						.replace(process.cwd() + "/", "");
+					log(`@ ${pathWithLineNumber.trim()}`);
 
-				const actual =
-					typeof error.actual === "object"
-						? inspect(error.actual, false, 1)
-						: error.actual;
+					if (error instanceof AssertionError) {
+						const expected =
+							typeof error.expected === "object"
+								? inspect(error.expected, false, 1)
+								: error.expected;
 
-				if (error instanceof AssertionError) {
-					log("   ", error.message.split(":")[0]);
-					log(colors.green(`expected: ${expected}`));
-					log(colors.red(`recieved: ${actual}`));
+						const actual =
+							typeof error.actual === "object"
+								? inspect(error.actual, false, 1)
+								: error.actual;
+						log("   ", error.message.split(":")[0]);
+						log(colors.green(`expected: ${expected}`));
+						log(colors.red(`recieved: ${actual}`));
+					} else {
+						log(error, "\n");
+					}
 				} else {
-					log(error);
+					log(error, "\n");
 				}
 				this.logger.subtractPadding();
-
-				log("\n");
 			}
 		} else {
 			log("\n");

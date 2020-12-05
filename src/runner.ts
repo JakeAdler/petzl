@@ -7,7 +7,8 @@ import {
 	Action,
 	ItAction,
 	DescribeStartAction,
-	isDescribeStartAction, isDescribeEndAction,
+	isDescribeStartAction,
+	isDescribeEndAction,
 	isHookAction,
 	isItAction,
 	isConfigurationAction,
@@ -16,6 +17,8 @@ import {
 	HookAction,
 	AnyCB,
 	Configuration,
+	Context,
+	DoOnceAction,
 } from "./types";
 
 export default class Runner {
@@ -35,7 +38,7 @@ export default class Runner {
 		this.summarizer = new Summarizer(this.logger, this.config);
 	}
 
-	public context = {
+	public context: Context = {
 		passed: 0,
 		failed: 0,
 		testRuntime: 0,
@@ -56,7 +59,7 @@ export default class Runner {
 	};
 
 	public run = async () => {
-		const { queue, evaluateTest, startGroup, stopGroup } = this;
+		const { queue, evaluateTest, startGroup, stopGroup, doOnce } = this;
 
 		if (!this.dev) {
 			this.summarizer.updateSummary(this.context, queue);
@@ -83,7 +86,7 @@ export default class Runner {
 				}
 
 				if (isDoOnceAction(action)) {
-					await action.cb();
+					await doOnce(action);
 				}
 
 				if (isConfigurationAction(action)) {
@@ -94,6 +97,7 @@ export default class Runner {
 			if (!this.dev) {
 				this.summarizer.clearSummary(true);
 			}
+			this.hijacker.resetGlobalLog();
 			this.logger.dumpLogs();
 			this.summarizer.endReport(this.context);
 		}
@@ -120,9 +124,23 @@ export default class Runner {
 		}
 	};
 
+	private doOnce = async (action: DoOnceAction) => {
+		this.hijacker.hijackConsoleLogs();
+		await this.runCb(action.cb, "(hook) doOnce");
+		this.hijacker.releaseDoOnceLog();
+	};
+
+	private runCb = async (cb: AnyCB, location: string) => {
+		try {
+			await cb();
+		} catch (err) {
+			this.context.errors.push([err, location]);
+		}
+	};
+
 	private runHook = async (hookName: keyof Hooks, testName: string) => {
 		this.hijacker.hijackConsoleLogs();
-		await this.hooks[hookName]();
+		await this.runCb(this.hooks[hookName], `(hook) ${hookName}`);
 		this.hijacker.releaseHookLog(hookName, testName);
 	};
 

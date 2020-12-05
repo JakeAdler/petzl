@@ -1,4 +1,6 @@
 import Runner from "./runner";
+import Logger from "./logger";
+import Configurer from "./configurer";
 import fs from "fs";
 import path from "path";
 import {
@@ -10,20 +12,20 @@ import {
 	isSequencerConfig,
 	SequencerConfiguration,
 } from "./types";
-import Logger from "./logger";
-import Configurer from "./configurer";
 
 export default class Collector {
-	private queue: Runner;
+	private runner: Runner;
 	private config: Configuration;
 	private logger: Logger;
 
-	constructor(queue: Runner, configurer: Configurer) {
-		this.queue = queue;
+	constructor(runner: Runner, configurer: Configurer) {
+		this.runner = runner;
 		this.config = configurer.config;
 		this.logger = new Logger(configurer.config);
 	}
 
+	// Helpers
+	// Recursively get all files in dirPath
 	private getAllFiles = (dirPath: string, arrayOfFiles?: string[]) => {
 		const files = fs.readdirSync(dirPath);
 
@@ -82,7 +84,7 @@ export default class Collector {
 	private runList = async (paths: string[]) => {
 		const realPaths = this.getRealPaths(paths);
 		for (const file of realPaths) {
-			this.queue.pushAction({
+			this.runner.pushAction({
 				type: "doOnce",
 				cb: () => {
 					this.logger.logTestFileName(file);
@@ -90,13 +92,15 @@ export default class Collector {
 			});
 			await import(file);
 		}
-		this.queue.run();
+		await this.runner.run();
 	};
 
+	//Collectors
+	//entryPoint
 	public entryPoint = async (config: EntryPointConfiguration) => {
 		const { root } = config;
-		const cliInput = process.argv[2];
 
+		const cliInput = process.argv[2];
 		if (!cliInput) {
 			if (root) {
 				const allFiles = this.getAllFiles(root);
@@ -123,12 +127,12 @@ export default class Collector {
 			// Run file
 			this.logger.logFileOrDirname("file", userPath);
 			const filePath = fs.realpathSync(userPath);
-			this.runList([filePath]);
+			await this.runList([filePath]);
 		} else if (isDir) {
 			// Run directory
 			this.logger.logFileOrDirname("directory", userPath);
 			const allFilesInDir = this.getAllFiles(userPath);
-			this.runList(allFilesInDir);
+			await this.runList(allFilesInDir);
 		} else if (root) {
 			const allFiles = this.getAllFiles(root);
 
@@ -200,11 +204,11 @@ export default class Collector {
 	public collect = async () => {
 		const collectorConfig = this.config.collector;
 		if (isMatchExtensionsConfig(collectorConfig)) {
-			this.matchExtensions(collectorConfig);
+			await this.matchExtensions(collectorConfig);
 		} else if (isEntryPointConfig(collectorConfig)) {
-			this.entryPoint(collectorConfig);
+			await this.entryPoint(collectorConfig);
 		} else if (isSequencerConfig(collectorConfig)) {
-			this.sequencer(collectorConfig);
+			await this.sequencer(collectorConfig);
 		} else {
 			throw new Error("Cannot read runner cofiguration");
 		}

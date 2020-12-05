@@ -8,9 +8,7 @@ class Store {
 	};
 
 	getLogs = () => {
-		for (const log of this.logs) {
-			console.log(log);
-		}
+		return this.logs;
 	};
 }
 const store = new Store();
