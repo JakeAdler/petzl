@@ -3,11 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var types_1 = require("./types");
 var util_1 = require("util");
 var assert_1 = require("assert");
-var table_1 = require("table");
 var Summarizer = /** @class */ (function () {
     function Summarizer(logger, configuration) {
         var _this = this;
-        this.createTable = function (context) {
+        this.logContext = function (context) {
+            var _a;
             var colors = _this.logger.colors;
             var passed = [
                 colors.green(colors.bold("Passed")),
@@ -17,16 +17,11 @@ var Summarizer = /** @class */ (function () {
                 colors.red(colors.bold("Failed")),
                 colors.red(context.failed.toString()),
             ];
-            var runtime = [
-                colors.blue(colors.bold("Runtime")),
-                colors.blue(context.testRuntime + "ms"),
-            ];
-            var processRuntime = [
-                colors.blue(colors.bold("Process Runtime")),
-                colors.blue(process.uptime().toFixed(1) + "s"),
-            ];
-            var endReport = [passed, faied, runtime, processRuntime];
-            return table_1.table(endReport, { border: table_1.getBorderCharacters("norc") });
+            var endReport = [passed, faied];
+            for (var _i = 0, endReport_1 = endReport; _i < endReport_1.length; _i++) {
+                var line = endReport_1[_i];
+                (_a = _this.logger).logFn.apply(_a, line);
+            }
         };
         this.updateSummary = function (context, queue) {
             if (!_this.config.dev) {
@@ -36,12 +31,12 @@ var Summarizer = /** @class */ (function () {
                     }
                 }).length;
                 _this.logger.logFn(_this.logger.colors.yelllow("Running"), context.passed + context.failed + "/" + numTests);
-                _this.logger.logFn(_this.createTable(context));
+                _this.logContext(context);
             }
         };
         this.clearSummary = function () {
             if (!_this.config.dev) {
-                process.stdout.moveCursor(0, -11);
+                process.stdout.moveCursor(0, -3);
                 process.stdout.clearScreenDown();
             }
         };
@@ -80,7 +75,7 @@ var Summarizer = /** @class */ (function () {
             else {
                 log("\n");
             }
-            log(_this.createTable(context));
+            _this.logContext(context);
         };
         this.logger = logger;
         this.config = configuration;

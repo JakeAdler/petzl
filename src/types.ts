@@ -1,4 +1,4 @@
-import Runner from "./runner";
+import Collector from "./collector";
 
 // Function types
 type AnyVoid = Promise<void> | void;
@@ -31,32 +31,33 @@ export interface DevConfiguration {
 }
 
 export interface Configuration {
-	runner?: RunnerConfiguration;
+	collector?: CollectorConfiguration;
+	require?: string[];
 	colors?: boolean;
 	bubbleHooks?: boolean;
 	volume?: number;
 	dev?: false | DevConfiguration;
 }
 
-export interface RunnerConfiguration {
-	use: keyof Runner;
+export interface CollectorConfiguration {
+	use: keyof Collector;
 	[key: string]: any;
 }
 
-// Runner configuration
-export interface SequencerConfiguration extends RunnerConfiguration {
+// Collector configuration
+export interface SequencerConfiguration extends CollectorConfiguration {
 	use: "sequencer";
 	sequence: string[];
 	ignore?: string[];
 }
 
-export interface MatchExtensionsConfiguration extends RunnerConfiguration {
+export interface MatchExtensionsConfiguration extends CollectorConfiguration {
 	use: "matchExtensions";
 	match: string[];
 	root: string;
 }
 
-export interface EntryPointConfiguration extends RunnerConfiguration {
+export interface EntryPointConfiguration extends CollectorConfiguration {
 	use: "entryPoint";
 	root?: string;
 }
@@ -147,19 +148,19 @@ export const isDoOnceAction = (action: Action): action is DoOnceAction => {
 };
 
 export const isEntryPointConfig = (
-	config: RunnerConfiguration
+	config: CollectorConfiguration
 ): config is EntryPointConfiguration => {
 	return config.use === "entryPoint";
 };
 
 export const isMatchExtensionsConfig = (
-	config: RunnerConfiguration
+	config: CollectorConfiguration
 ): config is MatchExtensionsConfiguration => {
 	return config.use === "matchExtensions";
 };
 
 export const isSequencerConfig = (
-	config: RunnerConfiguration
+	config: CollectorConfiguration
 ): config is SequencerConfiguration => {
 	return config.use === "sequencer";
 };

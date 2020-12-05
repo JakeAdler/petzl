@@ -1,4 +1,4 @@
 #!/bin/env node
-const { runner } = require("./dist/petzl");
+const { collector } = require("./dist/petzl");
 
-runner.run();
+collector.collect();

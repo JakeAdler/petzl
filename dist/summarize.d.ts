@@ -4,7 +4,7 @@ export default class Summarizer {
     logger: Logger;
     config: Configuration;
     constructor(logger: Logger, configuration: Configuration);
-    createTable: (context: Context) => string;
+    logContext: (context: Context) => void;
     updateSummary: (context: Context, queue: Action[]) => void;
     clearSummary: () => void;
     endReport: (context: Context) => void;

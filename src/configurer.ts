@@ -9,18 +9,28 @@ import fs from "fs";
 import path from "path";
 
 export default class Configurer {
-	public config: Configuration;
+	config: Configuration;
 
 	constructor(options?: Configuration) {
+		this.config = this.defaultConfiguration;
+
 		if (options) {
-			this.mergeConfigWithDefault(options);
+			this.applyConfig(options, false);
 		} else {
 			this.findConfig();
 		}
 	}
+	private findConfig = () => {
+		const pathToConfig = path.join(process.env["PWD"], "petzl.config.js");
+		const configExists = fs.existsSync(pathToConfig);
+		if (configExists) {
+			const userConfigFile = require(pathToConfig);
+			this.applyConfig(userConfigFile, false);
+		}
+	};
 
 	private defaultConfiguration: Configuration = {
-		runner: {
+		collector: {
 			use: "entryPoint",
 		},
 		volume: 3,
@@ -29,28 +39,48 @@ export default class Configurer {
 		dev: false,
 	};
 
-	private mergeConfigWithDefault = (options?: Configuration) => {
+	public applyConfig = (options: Configuration, onTheFly: boolean) => {
 		if (options) {
-			this.validateConfig(options);
+			this.validateConfig(options, onTheFly);
+			if (!onTheFly) {
+				this.requireRequires(options);
+			}
 			this.config = Object.assign({}, this.defaultConfiguration, options);
-		} else {
-			this.config = this.defaultConfiguration;
 		}
 	};
 
-	private findConfig = () => {
-		const pathToConfig = path.join(process.env["PWD"], "petzl.config.js");
-		const configExists = fs.existsSync(pathToConfig);
-		if (configExists) {
-			const userConfigFile = require(pathToConfig);
-			this.mergeConfigWithDefault(userConfigFile);
-		} else {
-			this.mergeConfigWithDefault();
+	private requireRequires = (config: Partial<Configuration>) => {
+		if (!config.require) return;
+		for (const requiredModule of config.require) {
+			try {
+				// synchronously require modules
+				require(requiredModule);
+			} catch (err) {
+				if (err.code && err.code === "MODULE_NOT_FOUND") {
+					throw new ConfigError(
+						"require",
+						`Could not find module ${requiredModule}`
+					);
+				} else {
+					throw err;
+				}
+			}
 		}
 	};
 
-	private validateConfig = (config: Partial<Configuration>) => {
+	public validateConfig = (
+		config: Partial<Configuration>,
+		onTheFly: boolean
+	) => {
+		const throwOnTheFly = (optionName: keyof Configuration) => {
+			throw new ConfigError(
+				optionName,
+				`Cannot configure this option on the fly.`
+			);
+		};
+
 		if (!config) return;
+		// dev
 		if (config.dev && config.dev !== false) {
 			if (config.dev === true) {
 				throw new ConfigError(
@@ -61,65 +91,107 @@ export default class Configurer {
 			//TODO: VALIDATE DEV OPTIONS
 		}
 
-		const runnerConfig = config.runner;
+		// require
+		if (config.require) {
+			if (onTheFly) {
+				throwOnTheFly("require");
+			} else {
+				for (const requiredModule of config.require) {
+					if (typeof requiredModule !== "string") {
+						throw new ConfigError(
+							`require[${requiredModule}]`,
+							"Must be a string"
+						);
+					}
+				}
+			}
+		}
 
-		if (isMatchExtensionsConfig(runnerConfig)) {
+		// colors
+		if (config.colors) {
+			if (typeof config.colors !== "boolean") {
+				throw new ConfigError("colors", "Must be a boolean");
+			}
+		}
+
+		// volume
+		if (config.colors) {
+			if (typeof config.colors !== "string") {
+				throw new ConfigError("colors", "Must be a string");
+			}
+		}
+
+		// bubbleHooks
+		if (config.bubbleHooks) {
+			if (typeof config.colors !== "boolean") {
+				throw new ConfigError("bubbleHooks", "Must be a boolean");
+			}
+		}
+
+		// collector
+		if (config.collector && onTheFly) {
+			throwOnTheFly("collector");
+		}
+
+		const collectorConfig = config.collector;
+
+		if (isMatchExtensionsConfig(collectorConfig)) {
 			// validate matchExtensions config
-			if (runnerConfig.root) {
-				const rootExists = fs.existsSync(runnerConfig.root);
+			if (collectorConfig.root) {
+				const rootExists = fs.existsSync(collectorConfig.root);
 				if (!rootExists) {
 					throw new ConfigError(
-						"runner.root",
-						`directory ${runnerConfig.root} does not exist`
+						"collector.root",
+						`directory ${collectorConfig.root} does not exist`
 					);
 				}
 			} else {
 				throw new ConfigError(
-					"runner.root",
-					"is required to use the 'matchExtensions' runner"
+					"collector.root",
+					"is required to use the 'matchExtensions' collector"
 				);
 			}
-			if (!runnerConfig.match) {
+			if (!collectorConfig.match) {
 				throw new ConfigError(
-					"runner.match",
-					"is required to use the 'matchExtensions' runner"
+					"collector.match",
+					"is required to use the 'matchExtensions' collector"
 				);
 			} else {
-				if (!Array.isArray(runnerConfig.match)) {
-					throw new ConfigError("runner.root", "must be an Array");
+				if (!Array.isArray(collectorConfig.match)) {
+					throw new ConfigError("collector.root", "must be an Array");
 				} else {
-					for (const matcher of runnerConfig.match) {
+					for (const matcher of collectorConfig.match) {
 						if (matcher.charAt(0) !== ".") {
 							throw new ConfigError(
-								"runner.match",
+								"collector.match",
 								`: Matcher should begin with '.', but got '${matcher}'`
 							);
 						}
 					}
 				}
 			}
-		} else if (isEntryPointConfig(runnerConfig)) {
+		} else if (isEntryPointConfig(collectorConfig)) {
 			// validate
-		} else if (isSequencerConfig(runnerConfig)) {
+		} else if (isSequencerConfig(collectorConfig)) {
 			// validate sequencer config
 			//TODO: Validate 'ignore' option
-			if (!runnerConfig.sequence) {
+			if (!collectorConfig.sequence) {
 				throw new ConfigError(
-					"runner.sequence",
-					"is required to use the 'sequencer' runner"
+					"collector.sequence",
+					"is required to use the 'sequencer' collector"
 				);
 			} else {
-				if (!Array.isArray(runnerConfig.sequence)) {
+				if (!Array.isArray(collectorConfig.sequence)) {
 					throw new ConfigError(
-						"runner.sequence",
+						"collector.sequence",
 						"is required to be an Array"
 					);
 				} else {
-					runnerConfig.sequence.forEach((fileOrDir) => {
+					collectorConfig.sequence.forEach((fileOrDir) => {
 						const exists = fs.existsSync(fileOrDir);
 						if (!exists) {
 							throw new ConfigError(
-								"runner.include",
+								"collector.include",
 								`path in sequence does not exist -> "${fileOrDir}"`
 							);
 						}

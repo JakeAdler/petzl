@@ -55,8 +55,8 @@ var hijacker_1 = __importDefault(require("./hijacker"));
 var utils_1 = require("./utils");
 var summarize_1 = __importDefault(require("./summarize"));
 var types_1 = require("./types");
-var Queue = /** @class */ (function () {
-    function Queue(config) {
+var Runner = /** @class */ (function () {
+    function Runner(config) {
         var _this = this;
         this.context = {
             passed: 0,
@@ -91,12 +91,6 @@ var Queue = /** @class */ (function () {
                     case 2:
                         if (!(i < queue.length)) return [3 /*break*/, 14];
                         action = queue[i];
-                        this.summarizer.clearSummary();
-                        if (!this.dev) {
-                            if (i !== queue.length - 1) {
-                                this.summarizer.updateSummary(this.context, this.queue);
-                            }
-                        }
                         if (!types_1.isHookAction(action)) return [3 /*break*/, 4];
                         return [4 /*yield*/, action.cb()];
                     case 3:
@@ -136,6 +130,7 @@ var Queue = /** @class */ (function () {
                         return [3 /*break*/, 2];
                     case 14: return [3 /*break*/, 16];
                     case 15:
+                        this.summarizer.clearSummary();
                         this.logger.dumpLogs();
                         this.summarizer.endReport(this.context);
                         return [7 /*endfinally*/];
@@ -205,6 +200,8 @@ var Queue = /** @class */ (function () {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
+                        this.summarizer.clearSummary();
+                        this.summarizer.updateSummary(this.context, this.queue);
                         title = action.title, cb = action.cb, args = action.args;
                         _a = this, context = _a.context, logger = _a.logger, hijacker = _a.hijacker, runHook = _a.runHook;
                         return [4 /*yield*/, runHook("beforeEach", title)];
@@ -255,7 +252,7 @@ var Queue = /** @class */ (function () {
         this.hijacker = new hijacker_1.default(this.logger, this.config);
         this.summarizer = new summarize_1.default(this.logger, this.config);
     }
-    return Queue;
+    return Runner;
 }());
-exports.default = Queue;
+exports.default = Runner;
 //# sourceMappingURL=queue.js.map

@@ -2,7 +2,6 @@ import { Action, Configuration, Context, isItAction } from "./types";
 import Logger from "./logger";
 import { inspect } from "util";
 import { AssertionError } from "assert";
-import { getBorderCharacters, table } from "table";
 
 export default class Summarizer {
 	logger: Logger;
@@ -13,7 +12,7 @@ export default class Summarizer {
 		this.config = configuration;
 	}
 
-	createTable = (context: Context) => {
+	logContext = (context: Context) => {
 		const { colors } = this.logger;
 		const passed = [
 			colors.green(colors.bold(`Passed`)),
@@ -23,16 +22,12 @@ export default class Summarizer {
 			colors.red(colors.bold(`Failed`)),
 			colors.red(context.failed.toString()),
 		];
-		const runtime = [
-			colors.blue(colors.bold(`Runtime`)),
-			colors.blue(`${context.testRuntime}ms`),
-		];
-		const processRuntime = [
-			colors.blue(colors.bold(`Process Runtime`)),
-			colors.blue(`${process.uptime().toFixed(1)}s`),
-		];
-		const endReport: string[][] = [passed, faied, runtime, processRuntime];
-		return table(endReport, { border: getBorderCharacters("norc") });
+
+		const endReport: string[][] = [passed, faied];
+
+		for (const line of endReport) {
+			this.logger.logFn(...line);
+		}
 	};
 
 	updateSummary = (context: Context, queue: Action[]) => {
@@ -46,13 +41,13 @@ export default class Summarizer {
 				this.logger.colors.yelllow("Running"),
 				`${context.passed + context.failed}/${numTests}`
 			);
-			this.logger.logFn(this.createTable(context));
+			this.logContext(context);
 		}
 	};
 
 	clearSummary = () => {
 		if (!this.config.dev) {
-			process.stdout.moveCursor(0, -11);
+			process.stdout.moveCursor(0, -3);
 			process.stdout.clearScreenDown();
 		}
 	};
@@ -99,6 +94,6 @@ export default class Summarizer {
 		} else {
 			log("\n");
 		}
-		log(this.createTable(context));
+		this.logContext(context);
 	};
 }

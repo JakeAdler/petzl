@@ -1,6 +1,7 @@
 module.exports = {
 	volume: 3,
-	runner: {
+	require: ["ts-node/register"],
+	collector: {
 		use: "entryPoint",
 		root: "test",
 	},

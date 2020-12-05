@@ -1,216 +1,201 @@
-import Queue from "./queue";
-import fs from "fs";
-import path from "path";
-import { register } from "ts-node";
-import {
-	Configuration,
-	EntryPointConfiguration,
-	MatchExtensionsConfiguration,
-	isMatchExtensionsConfig,
-	isEntryPointConfig,
-	isSequencerConfig,
-	SequencerConfiguration,
-} from "./types";
 import Logger from "./logger";
-
-register({
-	files: true,
-});
+import Hijacker from "./hijacker";
+import Configurer from "./configurer";
+import { Clock } from "./utils";
+import Summarizer from "./summarize";
+import {
+	Action,
+	ItAction,
+	DescribeStartAction,
+	isDescribeStartAction,
+	isDescribeEndAction,
+	isHookAction,
+	isItAction,
+	isConfigurationAction,
+	isDoOnceAction,
+	Hooks,
+	HookAction,
+	AnyCB,
+	Configuration,
+} from "./types";
 
 export default class Runner {
-	private queue: Queue;
-	private config: Configuration;
-	private logger: Logger;
+	configurer: Configurer;
+	config: Configuration;
+	logger: Logger;
+	hijacker: Hijacker;
+	summarizer: Summarizer;
+	dev: boolean;
 
-	constructor(queue: Queue, config: Configuration) {
-		this.queue = queue;
-		this.config = config;
-		this.logger = new Logger(config);
+	constructor(configurer: Configurer) {
+		this.configurer = configurer;
+		this.config = this.configurer.config;
+		this.dev = this.config.dev === false ? false : true;
+		this.logger = new Logger(this.config);
+		this.hijacker = new Hijacker(this.logger, this.config);
+		this.summarizer = new Summarizer(this.logger, this.config);
 	}
 
-	private getAllFiles = (dirPath: string, arrayOfFiles?: string[]) => {
-		const files = fs.readdirSync(dirPath);
-
-		arrayOfFiles = arrayOfFiles || [];
-
-		files.forEach((file) => {
-			if (fs.statSync(dirPath + "/" + file).isDirectory()) {
-				arrayOfFiles = this.getAllFiles(
-					dirPath + "/" + file,
-					arrayOfFiles
-				);
-			} else {
-				arrayOfFiles.push(path.join(dirPath, "/", file));
-			}
-		});
-
-		return arrayOfFiles;
+	public context = {
+		passed: 0,
+		failed: 0,
+		testRuntime: 0,
+		errors: [],
 	};
 
-	private joinPathAndRoot = (input: string, root?: string) => {
-		if (root) {
-			return path.join(root, input);
-		} else {
-			return input;
-		}
+	public queue: Action[] = [];
+
+	public pushAction = <A extends Action>(action: A) => {
+		this.queue.push(action);
 	};
 
-	private readDirWithMatcher = (dir: string, matchers?: string[]) => {
-		const allFiles = this.getAllFiles(dir);
-		return allFiles.filter((fileName) => {
-			if (matchers) {
-				for (const extension of matchers) {
-					if (fileName.endsWith(extension)) {
-						return fileName;
-					}
-				}
-			} else {
-				return fileName;
-			}
-		});
+	private reloadConfig = (options: Partial<Configuration>) => {
+		this.hijacker.resetGlobalLog();
+		this.configurer.applyConfig(options, true);
+		this.logger = new Logger(this.config);
+		this.hijacker = new Hijacker(this.logger, this.config);
 	};
 
-	private getRealPaths = (paths: string[]) => {
-		return paths.map((file) => {
-			const realPath = fs.realpathSync(file);
-			if (!file) {
-				throw new Error(
-					`Could not create path for ${file}. Check configuration.`
-				);
-			} else {
-				return realPath;
-			}
-		});
-	};
+	public run = async () => {
+		const { queue, evaluateTest, startGroup, stopGroup } = this;
 
-	private runList = (paths: string[]) => {
-		const realPaths = this.getRealPaths(paths);
-		for (const file of realPaths) {
-			this.queue.pushAction({
-				type: "doOnce",
-				cb: () => {
-					this.logger.logTestFileName(file);
-				},
-			});
-			require(file);
-		}
-		this.queue.run();
-	};
-
-	public entryPoint = (config: EntryPointConfiguration) => {
-		const { root } = config;
-		const cliInput = process.argv[2];
-
-		if (!cliInput) {
-			if (root) {
-				const allFiles = this.getAllFiles(root);
-				this.runList(allFiles);
-				return;
-			} else {
-				throw new Error(
-					"Must provide 'runner.root' option in config file, or path to file or directory as command line argument "
-				);
-			}
+		if (!this.dev) {
+			this.summarizer.updateSummary(this.context, queue);
 		}
 
-		const baseDir = cliInput.split("/")[0];
-		const userPath =
-			baseDir === root ? cliInput : this.joinPathAndRoot(cliInput, root);
-		let isDir: boolean;
-		let isFile: boolean;
 		try {
-			const fileArgStat = fs.statSync(userPath);
-			isDir = fileArgStat.isDirectory();
-			isFile = fileArgStat.isFile();
-		} catch {}
-		if (isFile) {
-			// Run file
-			this.logger.logFileOrDirname("file", userPath);
-			const filePath = fs.realpathSync(userPath);
-			this.runList([filePath]);
-		} else if (isDir) {
-			// Run directory
-			this.logger.logFileOrDirname("directory", userPath);
-			const allFilesInDir = this.getAllFiles(userPath);
-			this.runList(allFilesInDir);
-		} else if (root) {
-			const allFiles = this.getAllFiles(root);
+			for (let i = 0; i < queue.length; i++) {
+				const action = queue[i];
 
-			const chars = userPath.split("");
-
-			const regexStr = chars.reduce((prev, acc, i) => {
-				if (i === chars.length - 1) {
-					prev += acc;
-				} else {
-					prev += `${acc}.*`;
+				if (isHookAction(action)) {
+					await action.cb();
 				}
-				return prev;
-			}, "");
 
-			const regex = new RegExp(regexStr);
-
-			const matchingFiles = allFiles.filter((fileName) => {
-				const matches = fileName.match(regex);
-				if (matches && matches.length) {
-					return fileName;
+				if (isItAction(action)) {
+					await evaluateTest(action);
 				}
-			});
 
-			this.runList(matchingFiles);
-		}
-	};
+				if (isDescribeStartAction(action)) {
+					await startGroup(action);
+				}
 
-	public matchExtensions = (config: MatchExtensionsConfiguration) => {
-		const { match, root } = config;
-		const allPaths = this.readDirWithMatcher(root, match);
-		this.runList(allPaths);
-	};
+				if (isDescribeEndAction(action)) {
+					await stopGroup();
+				}
 
-	public sequencer = (config: SequencerConfiguration) => {
-		const { sequence, ignore } = config;
+				if (isDoOnceAction(action)) {
+					await action.cb();
+				}
 
-		let allSequencedFiles: string[] = [];
-
-		for (const fileOrDir of sequence) {
-			const isDir = fs.statSync(fileOrDir).isDirectory();
-			if (isDir) {
-				allSequencedFiles.push(...this.getAllFiles(fileOrDir));
-			} else {
-				allSequencedFiles.push(fileOrDir);
-			}
-		}
-
-		if (ignore) {
-			const spliceFile = (file: string) => {
-				const index = allSequencedFiles.indexOf(file);
-				allSequencedFiles.splice(index, 1);
-			};
-			for (const fileOrDir of ignore) {
-				const isDir = fs.statSync(fileOrDir).isDirectory();
-				if (isDir) {
-					const allFilesInDir = this.getAllFiles(fileOrDir);
-					for (const file of allFilesInDir) {
-						spliceFile(file);
-					}
-				} else {
-					spliceFile(fileOrDir);
+				if (isConfigurationAction(action)) {
+					this.reloadConfig(action.configuration);
 				}
 			}
+		} finally {
+			this.summarizer.clearSummary();
+			this.logger.dumpLogs();
+			this.summarizer.endReport(this.context);
 		}
-
-		this.runList(allSequencedFiles);
 	};
 
-	public run = () => {
-		const runnerConfig = this.config.runner;
-		if (isMatchExtensionsConfig(runnerConfig)) {
-			this.matchExtensions(runnerConfig);
-		} else if (isEntryPointConfig(runnerConfig)) {
-			this.entryPoint(runnerConfig);
-		} else if (isSequencerConfig(runnerConfig)) {
-			this.sequencer(runnerConfig);
-		} else {
-			throw new Error("Cannot read runner cofiguration");
+	private hooks: Hooks = {
+		beforeEach: () => {},
+		afterEach: () => {},
+	};
+
+	private hooksCache: Hooks[] = [];
+
+	public useCachedHooks = () => {
+		this.hooks = Object.assign(this.hooks, this.hooksCache.pop());
+	};
+
+	public cacheAndResetHooks = () => {
+		this.hooksCache.push({ ...this.hooks });
+
+		if (this.config.bubbleHooks !== true) {
+			for (const hook in this.hooks) {
+				this.hooks[hook] = () => {};
+			}
+		}
+	};
+
+	public runHook = async (hookName: keyof Hooks, testName: string) => {
+		this.hijacker.hijackConsoleLogs();
+		await this.hooks[hookName]();
+		this.hijacker.releaseHookLog(hookName, testName);
+	};
+
+	public pushHookAction = (hookName: keyof Hooks, cb: AnyCB) => {
+		const action: HookAction = {
+			type: "hook",
+			cb: () => {
+				this.hooks[hookName] = cb;
+			},
+		};
+		this.pushAction(action);
+	};
+
+	private startGroup = async (group: DescribeStartAction) => {
+		const { logger, cacheAndResetHooks } = this;
+		logger.addPadding();
+		logger.logGroupTitle(group.title);
+		cacheAndResetHooks();
+	};
+
+	private stopGroup = async () => {
+		const { logger, useCachedHooks } = this;
+		logger.subtractPadding();
+		useCachedHooks();
+	};
+
+	private evaluateTest = async <T extends any[]>(
+		action: ItAction<T>
+	): Promise<void> => {
+		this.summarizer.clearSummary();
+		this.summarizer.updateSummary(this.context, this.queue);
+		const { title, cb, args } = action;
+
+		const { context, logger, hijacker, runHook } = this;
+
+		await runHook("beforeEach", title);
+
+		hijacker.hijackConsoleLogs();
+
+		const clock = new Clock();
+
+		let didPass: boolean;
+		let runtime: number;
+		try {
+			await cb(...args);
+
+			// Pass
+			runtime = clock.calc();
+
+			logger.pass(title, runtime);
+
+			context.passed += 1;
+
+			if (runtime > 0) {
+				context.testRuntime += runtime;
+			}
+			didPass = true;
+		} catch (err) {
+			// Fail
+			didPass = false;
+			runtime = clock.calc();
+
+			logger.fail(title, runtime);
+
+			context.failed += 1;
+
+			context.errors.push([err, title]);
+
+			if (runtime > 0) {
+				context.testRuntime += runtime;
+			}
+		} finally {
+			hijacker.releaseTestLog(title, runtime, didPass);
+			await runHook("afterEach", title);
 		}
 	};
 }

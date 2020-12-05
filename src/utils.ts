@@ -1,16 +1,6 @@
 import { performance } from "perf_hooks";
 import Logger from "./logger";
-import { Title } from "./types";
-
-export const formatTitle = <T extends any[]>(
-	title: Title<T>,
-	...args: T
-): string => {
-	if (typeof title === "function") {
-		title = title(...args);
-	}
-	return title.trim();
-};
+import { ConfigError, Configuration, Title } from "./types";
 
 export class Clock {
 	constructor() {
@@ -30,11 +20,21 @@ export class Clock {
 	};
 }
 
+export const formatTitle = <T extends any[]>(
+	title: Title<T>,
+	...args: T
+): string => {
+	if (typeof title === "function") {
+		title = title(...args);
+	}
+	return title.trim();
+};
+
 export const registerProcessEventListeners = () => {
 	const colors = createColors(true);
 
 	process.on("uncaughtException", (err) => {
-		console.log(colors.red(`Failed (${err.name}): \n`), err.message);
+		console.log(colors.red(`Failed (${err.name}): \n`), err);
 	});
 };
 

@@ -46,22 +46,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Petzl = exports.runner = exports.configure = exports.doOnce = exports.afterEach = exports.beforeEach = exports.describe = exports.it = void 0;
+exports.Petzl = exports.collector = exports.configure = exports.doOnce = exports.afterEach = exports.beforeEach = exports.describe = exports.it = void 0;
 var utils_1 = require("./utils");
-var queue_1 = __importDefault(require("./queue"));
 var runner_1 = __importDefault(require("./runner"));
+var collector_1 = __importDefault(require("./collector"));
 var configurer_1 = __importDefault(require("./configurer"));
 var Petzl = /** @class */ (function () {
     function Petzl(configuration) {
         var _this = this;
         this.beforeEach = function (cb) {
-            _this.queue.pushHookAction("beforeEach", cb);
+            _this.runner.pushHookAction("beforeEach", cb);
         };
         this.afterEach = function (cb) {
-            _this.queue.pushHookAction("afterEach", cb);
+            _this.runner.pushHookAction("afterEach", cb);
         };
         this.doOnce = function (cb) {
-            _this.queue.pushAction({
+            _this.runner.pushAction({
                 type: "doOnce",
                 cb: function () { return __awaiter(_this, void 0, void 0, function () {
                     return __generator(this, function (_a) {
@@ -74,7 +74,8 @@ var Petzl = /** @class */ (function () {
             });
         };
         this.configure = function (options) {
-            _this.queue.pushAction({
+            utils_1.validateOnTheFlyConfig(options);
+            _this.runner.pushAction({
                 type: "configure",
                 configuration: options,
             });
@@ -84,7 +85,7 @@ var Petzl = /** @class */ (function () {
             for (var _i = 2; _i < arguments.length; _i++) {
                 args[_i - 2] = arguments[_i];
             }
-            _this.queue.pushAction({
+            _this.runner.pushAction({
                 type: "it",
                 title: utils_1.formatTitle.apply(void 0, __spreadArrays([title], args)),
                 cb: cb,
@@ -96,31 +97,30 @@ var Petzl = /** @class */ (function () {
             for (var _i = 2; _i < arguments.length; _i++) {
                 args[_i - 2] = arguments[_i];
             }
-            _this.queue.pushAction({
+            _this.runner.pushAction({
                 type: "describe-start",
                 title: utils_1.formatTitle.apply(void 0, __spreadArrays([title], args)),
             });
             cb.apply(void 0, args);
-            _this.queue.pushAction({
+            _this.runner.pushAction({
                 type: "describe-end",
             });
         };
         utils_1.registerProcessEventListeners();
-        var config = new configurer_1.default(configuration).config;
-        this.config = config;
-        this.queue = new queue_1.default(this.config);
-        this.runner = new runner_1.default(this.queue, this.config);
+        var configurer = new configurer_1.default(configuration);
+        this.runner = new runner_1.default(configurer);
+        this.collector = new collector_1.default(this.runner, configurer);
     }
     return Petzl;
 }());
 exports.Petzl = Petzl;
 var petzl = new Petzl();
-var it = petzl.it, describe = petzl.describe, beforeEach = petzl.beforeEach, afterEach = petzl.afterEach, doOnce = petzl.doOnce, configure = petzl.configure, runner = petzl.runner;
+var it = petzl.it, describe = petzl.describe, beforeEach = petzl.beforeEach, afterEach = petzl.afterEach, doOnce = petzl.doOnce, configure = petzl.configure, collector = petzl.collector;
 exports.it = it;
 exports.describe = describe;
 exports.beforeEach = beforeEach;
 exports.afterEach = afterEach;
 exports.doOnce = doOnce;
 exports.configure = configure;
-exports.runner = runner;
+exports.collector = collector;
 //# sourceMappingURL=petzl.js.map

@@ -1,32 +1,31 @@
 import { formatTitle, registerProcessEventListeners } from "./utils";
 import { AnyVoidCB, Configuration, Title, TestCB, AnyCB } from "./types";
-import Queue from "./queue";
 import Runner from "./runner";
+import Collector from "./collector";
 import Configurer from "./configurer";
 
 class Petzl {
-	private config: Configuration;
-	private queue: Queue;
-	public runner: Runner;
+	private runner: Runner;
+	private configurer: Configurer;
+	public collector: Collector;
 
 	constructor(configuration?: Configuration) {
-		registerProcessEventListeners()
-		const { config } = new Configurer(configuration);
-		this.config = config;
-		this.queue = new Queue(this.config);
-		this.runner = new Runner(this.queue, this.config);
+		registerProcessEventListeners();
+		this.configurer = new Configurer(configuration);
+		this.runner = new Runner(this.configurer);
+		this.collector = new Collector(this.runner, this.configurer);
 	}
 
 	public beforeEach = (cb: AnyVoidCB) => {
-		this.queue.pushHookAction("beforeEach", cb);
+		this.runner.pushHookAction("beforeEach", cb);
 	};
 
 	public afterEach = (cb: AnyVoidCB) => {
-		this.queue.pushHookAction("afterEach", cb);
+		this.runner.pushHookAction("afterEach", cb);
 	};
 
 	public doOnce = (cb: AnyCB) => {
-		this.queue.pushAction({
+		this.runner.pushAction({
 			type: "doOnce",
 			cb: async () => {
 				return await cb();
@@ -34,8 +33,11 @@ class Petzl {
 		});
 	};
 
-	public configure = (options: Omit<Configuration, "autoRun">) => {
-		this.queue.pushAction({
+	public configure = (
+		options: Omit<Configuration, "collector" | "require">
+	) => {
+		this.configurer.validateConfig(options, true);
+		this.runner.pushAction({
 			type: "configure",
 			configuration: options,
 		});
@@ -46,7 +48,7 @@ class Petzl {
 		cb: TestCB<T>,
 		...args: T
 	): void => {
-		this.queue.pushAction({
+		this.runner.pushAction({
 			type: "it",
 			title: formatTitle(title, ...args),
 			cb,
@@ -59,14 +61,14 @@ class Petzl {
 		cb: (...args: T) => void,
 		...args: T
 	): void => {
-		this.queue.pushAction({
+		this.runner.pushAction({
 			type: "describe-start",
 			title: formatTitle(title, ...args),
 		});
 
 		cb(...args);
 
-		this.queue.pushAction({
+		this.runner.pushAction({
 			type: "describe-end",
 		});
 	};
@@ -81,7 +83,7 @@ const {
 	afterEach,
 	doOnce,
 	configure,
-	runner,
+	collector,
 } = petzl;
 
 export {
@@ -91,6 +93,6 @@ export {
 	afterEach,
 	doOnce,
 	configure,
-	runner,
+	collector,
 	Petzl,
 };

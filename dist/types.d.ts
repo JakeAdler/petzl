@@ -1,4 +1,4 @@
-import Runner from "./runner";
+import Collector from "./collector";
 declare type AnyVoid = Promise<void> | void;
 export declare type AnyVoidCB = () => AnyVoid;
 export declare type AnyCB = () => Promise<any> | any;
@@ -19,27 +19,28 @@ export interface DevConfiguration {
     logger?: Pick<Console, "log">;
 }
 export interface Configuration {
-    runner?: RunnerConfiguration;
+    collector?: CollectorConfiguration;
+    require?: string[];
     colors?: boolean;
     bubbleHooks?: boolean;
     volume?: number;
     dev?: false | DevConfiguration;
 }
-export interface RunnerConfiguration {
-    use: keyof Runner;
+export interface CollectorConfiguration {
+    use: keyof Collector;
     [key: string]: any;
 }
-export interface SequencerConfiguration extends RunnerConfiguration {
+export interface SequencerConfiguration extends CollectorConfiguration {
     use: "sequencer";
     sequence: string[];
     ignore?: string[];
 }
-export interface MatchExtensionsConfiguration extends RunnerConfiguration {
+export interface MatchExtensionsConfiguration extends CollectorConfiguration {
     use: "matchExtensions";
     match: string[];
     root: string;
 }
-export interface EntryPointConfiguration extends RunnerConfiguration {
+export interface EntryPointConfiguration extends CollectorConfiguration {
     use: "entryPoint";
     root?: string;
 }
@@ -80,7 +81,7 @@ export declare const isDescribeStartAction: (action: Action) => action is Descri
 export declare const isDescribeEndAction: (action: Action) => action is DescribeEndAction;
 export declare const isConfigurationAction: (action: Action) => action is ConfigureAction;
 export declare const isDoOnceAction: (action: Action) => action is DoOnceAction;
-export declare const isEntryPointConfig: (config: RunnerConfiguration) => config is EntryPointConfiguration;
-export declare const isMatchExtensionsConfig: (config: RunnerConfiguration) => config is MatchExtensionsConfiguration;
-export declare const isSequencerConfig: (config: RunnerConfiguration) => config is SequencerConfiguration;
+export declare const isEntryPointConfig: (config: CollectorConfiguration) => config is EntryPointConfiguration;
+export declare const isMatchExtensionsConfig: (config: CollectorConfiguration) => config is MatchExtensionsConfiguration;
+export declare const isSequencerConfig: (config: CollectorConfiguration) => config is SequencerConfiguration;
 export {};

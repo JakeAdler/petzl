@@ -10,7 +10,7 @@ var Configurer = /** @class */ (function () {
     function Configurer(options) {
         var _this = this;
         this.defaultConfiguration = {
-            runner: {
+            collector: {
                 use: "entryPoint",
             },
             volume: 3,
@@ -18,13 +18,30 @@ var Configurer = /** @class */ (function () {
             colors: true,
             dev: false,
         };
-        this.mergeConfigWithDefault = function (options) {
+        this.applyConfig = function (options, onTheFly) {
             if (options) {
-                _this.validateConfig(options);
+                _this.validateConfig(options, onTheFly);
+                _this.checkRequires(options);
                 _this.config = Object.assign({}, _this.defaultConfiguration, options);
             }
-            else {
-                _this.config = _this.defaultConfiguration;
+        };
+        this.checkRequires = function (config) {
+            if (!config.require)
+                return;
+            for (var _i = 0, _a = config.require; _i < _a.length; _i++) {
+                var requiredModule = _a[_i];
+                try {
+                    // synchronously require modules
+                    require(requiredModule);
+                }
+                catch (err) {
+                    if (err.code && err.code === "MODULE_NOT_FOUND") {
+                        throw new types_1.ConfigError("require", "Could not find module " + requiredModule);
+                    }
+                    else {
+                        throw err;
+                    }
+                }
             }
         };
         this.findConfig = function () {
@@ -32,76 +49,114 @@ var Configurer = /** @class */ (function () {
             var configExists = fs_1.default.existsSync(pathToConfig);
             if (configExists) {
                 var userConfigFile = require(pathToConfig);
-                _this.mergeConfigWithDefault(userConfigFile);
-            }
-            else {
-                _this.mergeConfigWithDefault();
+                _this.applyConfig(userConfigFile, false);
             }
         };
-        this.validateConfig = function (config) {
+        this.validateConfig = function (config, onTheFly) {
+            var throwOnTheFly = function (optionName) {
+                throw new types_1.ConfigError(optionName, "Cannot configure this option on the fly.");
+            };
             if (!config)
                 return;
+            // dev
             if (config.dev && config.dev !== false) {
                 if (config.dev === true) {
                     throw new types_1.ConfigError("dev", "dev can either be set to 'false' or DevConfiguration");
                 }
                 //TODO: VALIDATE DEV OPTIONS
             }
-            var runnerConfig = config.runner;
-            if (types_1.isMatchExtensionsConfig(runnerConfig)) {
+            // require
+            if (config.require) {
+                if (onTheFly) {
+                    throwOnTheFly("require");
+                }
+                else {
+                    for (var _i = 0, _a = config.require; _i < _a.length; _i++) {
+                        var requiredModule = _a[_i];
+                        if (typeof requiredModule !== "string") {
+                            throw new types_1.ConfigError("require[" + requiredModule + "]", "Must be a string");
+                        }
+                    }
+                }
+            }
+            // colors
+            if (config.colors) {
+                if (typeof config.colors !== "boolean") {
+                    throw new types_1.ConfigError("colors", "Must be a boolean");
+                }
+            }
+            // volume
+            if (config.colors) {
+                if (typeof config.colors !== "string") {
+                    throw new types_1.ConfigError("colors", "Must be a string");
+                }
+            }
+            // bubbleHooks
+            if (config.bubbleHooks) {
+                if (typeof config.colors !== "boolean") {
+                    throw new types_1.ConfigError("bubbleHooks", "Must be a boolean");
+                }
+            }
+            // collector
+            if (config.collector && onTheFly) {
+                throwOnTheFly("collector");
+            }
+            var collectorConfig = config.collector;
+            if (types_1.isMatchExtensionsConfig(collectorConfig)) {
                 // validate matchExtensions config
-                if (runnerConfig.root) {
-                    var rootExists = fs_1.default.existsSync(runnerConfig.root);
+                if (collectorConfig.root) {
+                    var rootExists = fs_1.default.existsSync(collectorConfig.root);
                     if (!rootExists) {
-                        throw new types_1.ConfigError("runner.root", "directory " + runnerConfig.root + " does not exist");
+                        throw new types_1.ConfigError("collector.root", "directory " + collectorConfig.root + " does not exist");
                     }
                 }
                 else {
-                    throw new types_1.ConfigError("runner.root", "is required to use the 'matchExtensions' runner");
+                    throw new types_1.ConfigError("collector.root", "is required to use the 'matchExtensions' collector");
                 }
-                if (!runnerConfig.match) {
-                    throw new types_1.ConfigError("runner.match", "is required to use the 'matchExtensions' runner");
+                if (!collectorConfig.match) {
+                    throw new types_1.ConfigError("collector.match", "is required to use the 'matchExtensions' collector");
                 }
                 else {
-                    if (!Array.isArray(runnerConfig.match)) {
-                        throw new types_1.ConfigError("runner.root", "must be an Array");
+                    if (!Array.isArray(collectorConfig.match)) {
+                        throw new types_1.ConfigError("collector.root", "must be an Array");
                     }
                     else {
-                        for (var _i = 0, _a = runnerConfig.match; _i < _a.length; _i++) {
-                            var matcher = _a[_i];
+                        for (var _b = 0, _c = collectorConfig.match; _b < _c.length; _b++) {
+                            var matcher = _c[_b];
                             if (matcher.charAt(0) !== ".") {
-                                throw new types_1.ConfigError("runner.match", ": Matcher should begin with '.', but got '" + matcher + "'");
+                                throw new types_1.ConfigError("collector.match", ": Matcher should begin with '.', but got '" + matcher + "'");
                             }
                         }
                     }
                 }
             }
-            else if (types_1.isEntryPointConfig(runnerConfig)) {
+            else if (types_1.isEntryPointConfig(collectorConfig)) {
                 // validate
             }
-            else if (types_1.isSequencerConfig(runnerConfig)) {
+            else if (types_1.isSequencerConfig(collectorConfig)) {
                 // validate sequencer config
                 //TODO: Validate 'ignore' option
-                if (!runnerConfig.sequence) {
-                    throw new types_1.ConfigError("runner.sequence", "is required to use the 'sequencer' runner");
+                if (!collectorConfig.sequence) {
+                    throw new types_1.ConfigError("collector.sequence", "is required to use the 'sequencer' collector");
                 }
                 else {
-                    if (!Array.isArray(runnerConfig.sequence)) {
-                        throw new types_1.ConfigError("runner.sequence", "is required to be an Array");
+                    if (!Array.isArray(collectorConfig.sequence)) {
+                        throw new types_1.ConfigError("collector.sequence", "is required to be an Array");
                     }
                     else {
-                        runnerConfig.sequence.forEach(function (fileOrDir) {
+                        collectorConfig.sequence.forEach(function (fileOrDir) {
                             var exists = fs_1.default.existsSync(fileOrDir);
                             if (!exists) {
-                                throw new types_1.ConfigError("runner.include", "path in sequence does not exist -> \"" + fileOrDir + "\"");
+                                throw new types_1.ConfigError("collector.include", "path in sequence does not exist -> \"" + fileOrDir + "\"");
                             }
                         });
                     }
                 }
             }
         };
+        this.config = this.defaultConfiguration;
         if (options) {
-            this.mergeConfigWithDefault(options);
+            this.applyConfig(options, false);
         }
         else {
             this.findConfig();

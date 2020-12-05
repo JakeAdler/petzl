@@ -1,18 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createColors = exports.registerProcessEventListeners = exports.Clock = exports.formatTitle = void 0;
+exports.createColors = exports.registerProcessEventListeners = exports.formatTitle = exports.Clock = void 0;
 var perf_hooks_1 = require("perf_hooks");
-var formatTitle = function (title) {
-    var args = [];
-    for (var _i = 1; _i < arguments.length; _i++) {
-        args[_i - 1] = arguments[_i];
-    }
-    if (typeof title === "function") {
-        title = title.apply(void 0, args);
-    }
-    return title.trim();
-};
-exports.formatTitle = formatTitle;
 var Clock = /** @class */ (function () {
     function Clock() {
         var _this = this;
@@ -30,10 +19,21 @@ var Clock = /** @class */ (function () {
     return Clock;
 }());
 exports.Clock = Clock;
+var formatTitle = function (title) {
+    var args = [];
+    for (var _i = 1; _i < arguments.length; _i++) {
+        args[_i - 1] = arguments[_i];
+    }
+    if (typeof title === "function") {
+        title = title.apply(void 0, args);
+    }
+    return title.trim();
+};
+exports.formatTitle = formatTitle;
 var registerProcessEventListeners = function () {
     var colors = exports.createColors(true);
     process.on("uncaughtException", function (err) {
-        console.log(colors.red("Failed (" + err.name + "): \n"), err.message);
+        console.log(colors.red("Failed (" + err.name + "): \n"), err);
     });
 };
 exports.registerProcessEventListeners = registerProcessEventListeners;

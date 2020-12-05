@@ -3,7 +3,8 @@ export default class Configurer {
     config: Configuration;
     constructor(options?: Configuration);
     private defaultConfiguration;
-    private mergeConfigWithDefault;
+    applyConfig: (options: Configuration, onTheFly: boolean) => void;
+    private checkRequires;
     private findConfig;
     private validateConfig;
 }

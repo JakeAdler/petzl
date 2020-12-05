@@ -2,7 +2,7 @@ import Logger from "./logger";
 import Hijacker from "./hijacker";
 import Summarizer from "./summarize";
 import { Action, Hooks, AnyCB, Configuration } from "./types";
-export default class Queue {
+export default class Runner {
     config: Configuration;
     logger: Logger;
     hijacker: Hijacker;

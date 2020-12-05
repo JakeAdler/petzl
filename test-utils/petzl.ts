@@ -16,7 +16,7 @@ const petzl = new Petzl({
 		},
 	},
 	colors: false,
-	runner: {
+	collector: {
 		use: "sequencer",
 		sequence: ["test-utils/test-tests/index.ts"],
 	},
