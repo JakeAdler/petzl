@@ -70,7 +70,7 @@ var Runner = /** @class */ (function () {
         };
         this.reloadConfig = function (options) {
             _this.hijacker.resetGlobalLog();
-            _this.config = Object.assign(_this.config, options);
+            _this.configurer.applyConfig(options, true);
             _this.logger = new logger_1.default(_this.config);
             _this.hijacker = new hijacker_1.default(_this.logger, _this.config);
         };

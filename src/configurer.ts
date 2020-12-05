@@ -20,14 +20,6 @@ export default class Configurer {
 			this.findConfig();
 		}
 	}
-	private findConfig = () => {
-		const pathToConfig = path.join(process.env["PWD"], "petzl.config.js");
-		const configExists = fs.existsSync(pathToConfig);
-		if (configExists) {
-			const userConfigFile = require(pathToConfig);
-			this.applyConfig(userConfigFile, false);
-		}
-	};
 
 	private defaultConfiguration: Configuration = {
 		collector: {
@@ -37,6 +29,15 @@ export default class Configurer {
 		bubbleHooks: false,
 		colors: true,
 		dev: false,
+	};
+
+	private findConfig = () => {
+		const pathToConfig = path.join(process.env["PWD"], "petzl.config.js");
+		const configExists = fs.existsSync(pathToConfig);
+		if (configExists) {
+			const userConfigFile = require(pathToConfig);
+			this.applyConfig(userConfigFile, false);
+		}
 	};
 
 	public applyConfig = (options: Configuration, onTheFly: boolean) => {
@@ -80,15 +81,22 @@ export default class Configurer {
 		};
 
 		if (!config) return;
+
 		// dev
-		if (config.dev && config.dev !== false) {
-			if (config.dev === true) {
-				throw new ConfigError(
-					"dev",
-					"dev can either be set to 'false' or DevConfiguration"
-				);
+		if (config.dev) {
+			if (!config.dev.logger) {
+				if (typeof config.dev !== "object") {
+					throw new ConfigError(
+						"dev",
+						"dev can either be set to 'false' or DevConfiguration"
+					);
+				} else {
+					throw new ConfigError(
+						"dev",
+						"dev must contain the property logger"
+					);
+				}
 			}
-			//TODO: VALIDATE DEV OPTIONS
 		}
 
 		// require

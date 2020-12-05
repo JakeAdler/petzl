@@ -1,4 +1,4 @@
-import { it } from "../dist";
+const { it } = require("../dist");
 /* import { petzl, store } from "../test-utils/petzl"; */
 
 const sleep = () => new Promise((resolve) => setTimeout(resolve, 1200));

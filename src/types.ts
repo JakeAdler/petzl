@@ -27,7 +27,7 @@ export interface Context {
 
 // Configuration
 export interface DevConfiguration {
-	logger?: Pick<Console, "log">;
+	logger: Pick<Console, "log">;
 }
 
 export interface Configuration {

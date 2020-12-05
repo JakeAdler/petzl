@@ -14,9 +14,7 @@
 	"keywords": [],
 	"author": "Jake Adler",
 	"license": "ISC",
-	"dependencies": {
-		"table": "^6.0.4"
-	},
+	"dependencies": {},
 	"devDependencies": {
 		"@types/node": "^14.14.9",
 		"@types/table": "^6.0.0",

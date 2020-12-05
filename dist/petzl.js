@@ -74,7 +74,7 @@ var Petzl = /** @class */ (function () {
             });
         };
         this.configure = function (options) {
-            utils_1.validateOnTheFlyConfig(options);
+            _this.configurer.validateConfig(options, true);
             _this.runner.pushAction({
                 type: "configure",
                 configuration: options,
@@ -107,9 +107,9 @@ var Petzl = /** @class */ (function () {
             });
         };
         utils_1.registerProcessEventListeners();
-        var configurer = new configurer_1.default(configuration);
-        this.runner = new runner_1.default(configurer);
-        this.collector = new collector_1.default(this.runner, configurer);
+        this.configurer = new configurer_1.default(configuration);
+        this.runner = new runner_1.default(this.configurer);
+        this.collector = new collector_1.default(this.runner, this.configurer);
     }
     return Petzl;
 }());

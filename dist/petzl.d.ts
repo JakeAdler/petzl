@@ -2,6 +2,7 @@ import { AnyVoidCB, Configuration, Title, TestCB, AnyCB } from "./types";
 import Collector from "./collector";
 declare class Petzl {
     private runner;
+    private configurer;
     collector: Collector;
     constructor(configuration?: Configuration);
     beforeEach: (cb: AnyVoidCB) => void;

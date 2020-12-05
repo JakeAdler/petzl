@@ -18,14 +18,24 @@ var Configurer = /** @class */ (function () {
             colors: true,
             dev: false,
         };
+        this.findConfig = function () {
+            var pathToConfig = path_1.default.join(process.env["PWD"], "petzl.config.js");
+            var configExists = fs_1.default.existsSync(pathToConfig);
+            if (configExists) {
+                var userConfigFile = require(pathToConfig);
+                _this.applyConfig(userConfigFile, false);
+            }
+        };
         this.applyConfig = function (options, onTheFly) {
             if (options) {
                 _this.validateConfig(options, onTheFly);
-                _this.checkRequires(options);
+                if (!onTheFly) {
+                    _this.requireRequires(options);
+                }
                 _this.config = Object.assign({}, _this.defaultConfiguration, options);
             }
         };
-        this.checkRequires = function (config) {
+        this.requireRequires = function (config) {
             if (!config.require)
                 return;
             for (var _i = 0, _a = config.require; _i < _a.length; _i++) {
@@ -44,14 +54,6 @@ var Configurer = /** @class */ (function () {
                 }
             }
         };
-        this.findConfig = function () {
-            var pathToConfig = path_1.default.join(process.env["PWD"], "petzl.config.js");
-            var configExists = fs_1.default.existsSync(pathToConfig);
-            if (configExists) {
-                var userConfigFile = require(pathToConfig);
-                _this.applyConfig(userConfigFile, false);
-            }
-        };
         this.validateConfig = function (config, onTheFly) {
             var throwOnTheFly = function (optionName) {
                 throw new types_1.ConfigError(optionName, "Cannot configure this option on the fly.");
@@ -59,11 +61,15 @@ var Configurer = /** @class */ (function () {
             if (!config)
                 return;
             // dev
-            if (config.dev && config.dev !== false) {
-                if (config.dev === true) {
-                    throw new types_1.ConfigError("dev", "dev can either be set to 'false' or DevConfiguration");
+            if (config.dev) {
+                if (!config.dev.logger) {
+                    if (typeof config.dev !== "object") {
+                        throw new types_1.ConfigError("dev", "dev can either be set to 'false' or DevConfiguration");
+                    }
+                    else {
+                        throw new types_1.ConfigError("dev", "dev must contain the property logger");
+                    }
                 }
-                //TODO: VALIDATE DEV OPTIONS
             }
             // require
             if (config.require) {

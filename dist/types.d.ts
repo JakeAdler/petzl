@@ -16,7 +16,7 @@ export interface Context {
     errors: any[];
 }
 export interface DevConfiguration {
-    logger?: Pick<Console, "log">;
+    logger: Pick<Console, "log">;
 }
 export interface Configuration {
     collector?: CollectorConfiguration;
