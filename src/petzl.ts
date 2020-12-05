@@ -1,8 +1,8 @@
-import { formatTitle, registerProcessEventListeners } from "./utils";
-import { AnyVoidCB, Configuration, Title, TestCB, AnyCB } from "./types";
 import Runner from "./runner";
 import Collector from "./collector";
 import Configurer from "./configurer";
+import { formatTitle, registerProcessEventListeners } from "./utils";
+import { AnyVoidCB, Configuration, Title, TestCB, AnyCB } from "./types";
 
 class Petzl {
 	private runner: Runner;

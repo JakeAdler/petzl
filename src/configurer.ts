@@ -9,7 +9,7 @@ import fs from "fs";
 import path from "path";
 
 export default class Configurer {
-	config: Configuration;
+	public config: Configuration;
 
 	constructor(options?: Configuration) {
 		this.config = this.defaultConfiguration;
@@ -31,15 +31,6 @@ export default class Configurer {
 		dev: false,
 	};
 
-	private findConfig = () => {
-		const pathToConfig = path.join(process.env["PWD"], "petzl.config.js");
-		const configExists = fs.existsSync(pathToConfig);
-		if (configExists) {
-			const userConfigFile = require(pathToConfig);
-			this.applyConfig(userConfigFile, false);
-		}
-	};
-
 	public applyConfig = (options: Configuration, onTheFly: boolean) => {
 		if (options) {
 			this.validateConfig(options, onTheFly);
@@ -47,6 +38,15 @@ export default class Configurer {
 				this.requireRequires(options);
 			}
 			this.config = Object.assign({}, this.defaultConfiguration, options);
+		}
+	};
+
+	private findConfig = () => {
+		const pathToConfig = path.join(process.env["PWD"], "petzl.config.js");
+		const configExists = fs.existsSync(pathToConfig);
+		if (configExists) {
+			const userConfigFile = require(pathToConfig);
+			this.applyConfig(userConfigFile, false);
 		}
 	};
 

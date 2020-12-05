@@ -7,8 +7,7 @@ import {
 	Action,
 	ItAction,
 	DescribeStartAction,
-	isDescribeStartAction,
-	isDescribeEndAction,
+	isDescribeStartAction, isDescribeEndAction,
 	isHookAction,
 	isItAction,
 	isConfigurationAction,
@@ -59,9 +58,9 @@ export default class Runner {
 	public run = async () => {
 		const { queue, evaluateTest, startGroup, stopGroup } = this;
 
-/* 		if (!this.dev) { */
-/* 			this.summarizer.updateSummary(this.context, queue); */
-/* 		} */
+		if (!this.dev) {
+			this.summarizer.updateSummary(this.context, queue);
+		}
 
 		try {
 			for (let i = 0; i < queue.length; i++) {
@@ -92,7 +91,9 @@ export default class Runner {
 				}
 			}
 		} finally {
-			/* this.summarizer.clearSummary(); */
+			if (!this.dev) {
+				this.summarizer.clearSummary(true);
+			}
 			this.logger.dumpLogs();
 			this.summarizer.endReport(this.context);
 		}
@@ -119,7 +120,7 @@ export default class Runner {
 		}
 	};
 
-	public runHook = async (hookName: keyof Hooks, testName: string) => {
+	private runHook = async (hookName: keyof Hooks, testName: string) => {
 		this.hijacker.hijackConsoleLogs();
 		await this.hooks[hookName]();
 		this.hijacker.releaseHookLog(hookName, testName);

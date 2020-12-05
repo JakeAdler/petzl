@@ -6,6 +6,12 @@ class Store {
 	pushToLogs = (...args: any[]) => {
 		this.logs.push(args);
 	};
+
+	getLogs = () => {
+		for (const log of this.logs) {
+			console.log(log);
+		}
+	};
 }
 const store = new Store();
 
@@ -18,7 +24,7 @@ const petzl = new Petzl({
 	colors: false,
 	collector: {
 		use: "sequencer",
-		sequence: ["test-utils/test-tests/index.ts"],
+		sequence: ["test-utils/test-tests/it.ts"],
 	},
 });
 

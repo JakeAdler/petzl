@@ -15,15 +15,20 @@ export default class Summarizer {
 	logContext = (context: Context) => {
 		const { colors } = this.logger;
 		const passed = [
-			colors.green(colors.bold(`Passed`)),
+			colors.green(colors.bold(`Passed `)),
 			colors.green(context.passed.toString()),
 		];
-		const faied = [
-			colors.red(colors.bold(`Failed`)),
+		const failed = [
+			colors.red(colors.bold(`Failed `)),
 			colors.red(context.failed.toString()),
 		];
+		const runtimeFormateted = (context.testRuntime / 1000).toFixed(1);
+		const runtime = [
+			colors.blue(colors.bold(`Runtime`)),
+			colors.blue(`${runtimeFormateted}s`),
+		];
 
-		const endReport: string[][] = [passed, faied];
+		const endReport: string[][] = [passed, failed, runtime];
 
 		for (const line of endReport) {
 			this.logger.logFn(...line);
@@ -45,10 +50,16 @@ export default class Summarizer {
 		}
 	};
 
-	clearSummary = () => {
+	clearSummary = (goBackUp?: boolean) => {
 		if (!this.config.dev) {
-			process.stdout.moveCursor(0, -3);
+			process.stdout.moveCursor(0, -4);
 			process.stdout.clearScreenDown();
+			if (goBackUp) {
+				//TODO: Figure out why this value **should** be one less (-3)
+				// than the moveCursor value (-4), or 2 less to print a new line
+				// Best tested on volume 2
+				process.stdout.moveCursor(0, -2);
+			}
 		}
 	};
 
@@ -59,7 +70,6 @@ export default class Summarizer {
 		flushPadding();
 
 		if (errors.length) {
-			log("\n");
 			for (let i = 0; i < errors.length; i++) {
 				const [error, title] = errors[i];
 
