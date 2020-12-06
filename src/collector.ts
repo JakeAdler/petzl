@@ -27,7 +27,6 @@ export default class Collector {
 		registerProcessEventListeners(this.logger);
 	}
 
-	// Helpers
 	// Recursively get all files in dirPath
 	private getAllFiles = (dirPath: string, arrayOfFiles?: string[]) => {
 		const files = fs.readdirSync(dirPath);
@@ -46,29 +45,6 @@ export default class Collector {
 		});
 
 		return arrayOfFiles;
-	};
-
-	private joinPathAndRoot = (input: string, root?: string) => {
-		if (root) {
-			return path.join(root, input);
-		} else {
-			return input;
-		}
-	};
-
-	private readDirWithMatcher = (dir: string, matchers?: string[]) => {
-		const allFiles = this.getAllFiles(dir);
-		return allFiles.filter((fileName) => {
-			if (matchers) {
-				for (const extension of matchers) {
-					if (fileName.endsWith(extension)) {
-						return fileName;
-					}
-				}
-			} else {
-				return fileName;
-			}
-		});
 	};
 
 	private getRealPaths = (paths: string[]) => {
@@ -119,9 +95,7 @@ export default class Collector {
 			// Check if CLI input redundantly includes 'root'
 			const baseDir = cliInput.split("/")[0];
 			const userPath =
-				baseDir === root
-					? cliInput
-					: this.joinPathAndRoot(cliInput, root);
+				baseDir === root ? cliInput : path.join(root, cliInput);
 
 			let isDir: boolean, isFile: boolean;
 
@@ -178,8 +152,20 @@ export default class Collector {
 
 	public matchExtensions = async (config: MatchExtensionsConfiguration) => {
 		const { match, root } = config;
-		const allPaths = this.readDirWithMatcher(root, match);
-		await this.runList(allPaths);
+		const allFiles = this.getAllFiles(root);
+		const matchingPaths = allFiles.filter((fileName) => {
+			if (match) {
+				for (const extension of match) {
+					if (fileName.endsWith(extension)) {
+						return fileName;
+					}
+				}
+			} else {
+				return fileName;
+			}
+		});
+
+		await this.runList(matchingPaths);
 	};
 
 	public sequencer = async (config: SequencerConfiguration) => {
