@@ -10,7 +10,6 @@ class Petzl {
 	public collector: Collector;
 
 	constructor(configuration?: Configuration) {
-		registerProcessEventListeners();
 		this.configurer = new Configurer(configuration);
 		this.runner = new Runner(this.configurer);
 		this.collector = new Collector(this.runner, this.configurer);

@@ -45,6 +45,19 @@ export default class Runner {
 		errors: [],
 	};
 
+	private reset = () => {
+		this.context = {
+			passed: 0,
+			failed: 0,
+			testRuntime: 0,
+			errors: [],
+		};
+		this.queue = [];
+		this.logger = new Logger(this.config, false);
+		this.hijacker = new Hijacker(this.logger, this.config);
+		this.summarizer = new Summarizer(this.logger, this.config);
+	};
+
 	public queue: Action[] = [];
 
 	public pushAction = <A extends Action>(action: A) => {
@@ -95,11 +108,11 @@ export default class Runner {
 			}
 		} finally {
 			if (!this.dev) {
-				this.summarizer.clearSummary(true);
+				this.summarizer.clearSummary();
 			}
 			this.hijacker.resetGlobalLog();
-			this.logger.dumpLogs();
 			this.summarizer.endReport(this.context);
+			this.reset();
 		}
 	};
 

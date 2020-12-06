@@ -2,6 +2,7 @@ import { Action, Configuration, Context, isItAction } from "./types";
 import Logger from "./logger";
 import { inspect } from "util";
 import { AssertionError } from "assert";
+import { cleanStack } from "./utils";
 
 export default class Summarizer {
 	logger: Logger;
@@ -50,22 +51,18 @@ export default class Summarizer {
 		}
 	};
 
-	clearSummary = (goBackUp?: boolean) => {
+	clearSummary = () => {
 		if (!this.config.dev) {
 			process.stdout.moveCursor(0, -4);
 			process.stdout.clearScreenDown();
-			if (goBackUp) {
-				//TODO: Figure out why this value **should** be one less (-3)
-				// than the moveCursor value (-4), or 2 less to print a new line
-				// Best tested on volume 2
-				process.stdout.moveCursor(0, -2);
-			}
 		}
 	};
 
 	endReport = (context: Context) => {
-		const { flushPadding, logFn: log, colors } = this.logger;
+		const { flushPadding, logFn: log, colors, dumpLogs } = this.logger;
 		const { errors } = context;
+
+		dumpLogs();
 
 		flushPadding();
 
@@ -73,14 +70,12 @@ export default class Summarizer {
 			for (let i = 0; i < errors.length; i++) {
 				const [error, title] = errors[i];
 
-				log(colors.red(colors.bold(`Failed: ${title}`)));
+				log(colors.red(colors.bold(`\nFailed: ${title}`)));
 
 				this.logger.addPadding();
 				if (error instanceof Error) {
-					const pathWithLineNumber = error.stack
-						.split("at ")[1]
-						.replace(process.cwd() + "/", "");
-					log(`@ ${pathWithLineNumber.trim()}`);
+					const stack = cleanStack(error);
+					log(stack);
 
 					if (error instanceof AssertionError) {
 						const expected =
@@ -92,9 +87,10 @@ export default class Summarizer {
 							typeof error.actual === "object"
 								? inspect(error.actual, false, 1)
 								: error.actual;
+
 						log("   ", error.message.split(":")[0]);
-						log(colors.green(`expected: ${expected}`));
-						log(colors.red(`recieved: ${actual}`));
+						log("   ", colors.green(`expected: ${expected}`));
+						log("   ", colors.red(`recieved: ${actual}`), "\n");
 					} else {
 						log(error, "\n");
 					}
@@ -103,9 +99,8 @@ export default class Summarizer {
 				}
 				this.logger.subtractPadding();
 			}
-		} else {
-			log("\n");
 		}
+
 		this.logContext(context);
 	};
 }

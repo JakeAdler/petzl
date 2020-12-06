@@ -11,7 +11,9 @@ import {
 	isEntryPointConfig,
 	isSequencerConfig,
 	SequencerConfiguration,
+	InputError,
 } from "./types";
+import { registerProcessEventListeners } from "./utils";
 
 export default class Collector {
 	private runner: Runner;
@@ -22,6 +24,7 @@ export default class Collector {
 		this.runner = runner;
 		this.config = configurer.config;
 		this.logger = new Logger(configurer.config);
+		registerProcessEventListeners(this.logger);
 	}
 
 	// Helpers
@@ -102,61 +105,74 @@ export default class Collector {
 
 		const cliInput = process.argv[2];
 		if (!cliInput) {
+			// If root option is set and no CLI input, just run root
 			if (root) {
 				const allFiles = this.getAllFiles(root);
 				this.runList(allFiles);
 				return;
 			} else {
 				throw new Error(
-					"Must provide 'runner.root' option in config file, or path to file or directory as command line argument "
+					"Must provide 'runner.root' option in config file, or the path to a file or directory as a command line argument "
 				);
 			}
-		}
+		} else {
+			// Check if CLI input redundantly includes 'root'
+			const baseDir = cliInput.split("/")[0];
+			const userPath =
+				baseDir === root
+					? cliInput
+					: this.joinPathAndRoot(cliInput, root);
 
-		const baseDir = cliInput.split("/")[0];
-		const userPath =
-			baseDir === root ? cliInput : this.joinPathAndRoot(cliInput, root);
-		let isDir: boolean;
-		let isFile: boolean;
-		try {
-			const fileArgStat = fs.statSync(userPath);
-			isDir = fileArgStat.isDirectory();
-			isFile = fileArgStat.isFile();
-		} catch {}
-		if (isFile) {
-			// Run file
-			this.logger.logFileOrDirname("file", userPath);
-			const filePath = fs.realpathSync(userPath);
-			await this.runList([filePath]);
-		} else if (isDir) {
-			// Run directory
-			this.logger.logFileOrDirname("directory", userPath);
-			const allFilesInDir = this.getAllFiles(userPath);
-			await this.runList(allFilesInDir);
-		} else if (root) {
-			const allFiles = this.getAllFiles(root);
+			let isDir: boolean, isFile: boolean;
 
-			const chars = userPath.split("");
+			// Check if CLI input is an actual path to a file or dir
+			try {
+				const fileArgStat = fs.statSync(userPath);
+				isDir = fileArgStat.isDirectory();
+				isFile = fileArgStat.isFile();
+			} catch {}
 
-			const regexStr = chars.reduce((prev, acc, i) => {
-				if (i === chars.length - 1) {
-					prev += acc;
-				} else {
-					prev += `${acc}.*`;
-				}
-				return prev;
-			}, "");
+			if (isFile) {
+				const filePath = fs.realpathSync(userPath);
+				this.logger.logCurrentlyRunning("file", userPath);
+				await this.runList([filePath]);
+			} else if (isDir) {
+				const allFilesInDir = this.getAllFiles(userPath);
+				this.logger.logCurrentlyRunning("directory", userPath);
+				await this.runList(allFilesInDir);
+			} else if (root) {
+				// Regex match CLI input (requires root option to be set)
 
-			const regex = new RegExp(regexStr);
+				const allFiles = this.getAllFiles(root);
 
-			const matchingFiles = allFiles.filter((fileName) => {
-				const matches = fileName.match(regex);
-				if (matches && matches.length) {
-					return fileName;
-				}
-			});
+				const chars = userPath.split("");
 
-			await this.runList(matchingFiles);
+				// Generate regex string e.g.:
+				// input: 'f/ar' --> 'f.*\/.*a.*r.*'
+				// will match : 'foo/bar' but will not match 'foo/baz'
+				const regexStr = new RegExp(
+					chars.reduce((prev, acc, i) => {
+						if (i === chars.length - 1) {
+							prev += acc;
+						} else {
+							prev += `${acc}.*`;
+						}
+						return prev;
+					}, "")
+				);
+
+				const matchingFiles = allFiles.filter((fileName) => {
+					const matches = fileName.match(regexStr);
+					if (matches && matches.length) {
+						return fileName;
+					} else {
+						throw new InputError(`No files matching ${cliInput}`);
+					}
+				});
+
+				this.logger.logCurrentlyRunning("files matching", cliInput);
+				await this.runList(matchingFiles);
+			}
 		}
 	};
 

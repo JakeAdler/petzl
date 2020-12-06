@@ -113,6 +113,13 @@ export class ConfigError extends Error {
 	}
 }
 
+export class InputError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "Input Error";
+	}
+}
+
 // Guards
 
 export const isHookAction = (action: Action): action is HookAction => {

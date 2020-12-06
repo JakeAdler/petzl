@@ -1,6 +1,6 @@
 import { performance } from "perf_hooks";
 import Logger from "./logger";
-import { ConfigError, Configuration, Title } from "./types";
+import { ConfigError, Configuration, InputError, Title } from "./types";
 
 export class Clock {
 	constructor() {
@@ -30,12 +30,26 @@ export const formatTitle = <T extends any[]>(
 	return title.trim();
 };
 
-export const registerProcessEventListeners = () => {
-	const colors = createColors(true);
-
+export const registerProcessEventListeners = (logger: Logger) => {
 	process.on("uncaughtException", (err) => {
-		console.log(colors.red(`Failed (${err.name}): \n`), err);
+		let message: string;
+		if (err instanceof InputError) {
+			message = err.message;
+		} else {
+			message = `${cleanStack(err)} \n ${err.message}`;
+		}
+		logger.logFn(logger.colors.red(`Failed (${err.name}): \n`), message);
 	});
+};
+
+export const cleanStack = (err: Error) => {
+	return (
+		"@ " +
+		err.stack
+			.split("at ")[1]
+			.replace(process.cwd() + "/", "")
+			.trim()
+	);
 };
 
 export const createColors = (real: boolean): Logger["colors"] => {

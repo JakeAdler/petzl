@@ -32,17 +32,21 @@ export default class Logger {
 	padding: string;
 	logQueue: any[];
 
-	constructor(configuration: Configuration) {
+	constructor(configuration: Configuration, useCache?: boolean) {
 		const { colors, volume, dev } = configuration;
 
-		if (dev !== false) {
-			this.logFn = dev.logger.log;
+		if (!useCache || dev !== false) {
 			this.padding = "";
 			this.logQueue = [];
 		} else {
-			this.logFn = console.log;
 			this.padding = cache.padding;
 			this.logQueue = cache.logQueue;
+		}
+
+		if (dev !== false) {
+			this.logFn = dev.logger.log;
+		} else {
+			this.logFn = console.log;
 		}
 
 		this.volume = volume;
@@ -71,11 +75,7 @@ export default class Logger {
 	public dumpLogs = () => {
 		for (let i = 0; i < this.logQueue.length; i++) {
 			const logs = this.logQueue[i];
-			if (i === this.logQueue.length - 1) {
-				this.logFn(...logs, "\n");
-			} else {
-				this.logFn(...logs);
-			}
+			this.logFn(...logs);
 		}
 	};
 
@@ -124,11 +124,12 @@ export default class Logger {
 		}
 	};
 
-	logFileOrDirname = (fileOrDir: "file" | "directory", name: string) => {
+	logCurrentlyRunning = (
+		type: "file" | "directory" | "files matching",
+		name: string
+	) => {
 		this.logFn(
-			this.colors.bold(
-				this.colors.underline(`Running ${fileOrDir} ${name}`)
-			)
+			this.colors.bold(this.colors.underline(`Running ${type} ${name}`))
 		);
 	};
 }
