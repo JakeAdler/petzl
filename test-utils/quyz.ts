@@ -1,4 +1,4 @@
-import { Petzl } from "../dist/petzl";
+import { Quyz } from "../dist/quyz";
 
 class Store {
 	logs: string[][] = [];
@@ -13,7 +13,7 @@ class Store {
 }
 const store = new Store();
 
-const petzl = new Petzl({
+const quyz = new Quyz({
 	dev: {
 		logger: {
 			log: store.pushToLogs,
@@ -26,4 +26,4 @@ const petzl = new Petzl({
 	},
 });
 
-export { petzl, store };
+export { quyz, store };

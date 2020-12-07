@@ -1,6 +1,6 @@
-import { petzl } from "../petzl";
+import { quyz } from "../quyz";
 import { add } from "../spied-methods";
-const { it } = petzl;
+const { it } = quyz;
 
 it("1 + 1 === 2", () => {
 	add(1, 1, 2);

@@ -42,7 +42,7 @@ export default class Configurer {
 	};
 
 	private findConfig = () => {
-		const pathToConfig = path.join(process.env["PWD"], "petzl.config.js");
+		const pathToConfig = path.join(process.env["PWD"], "quyz.config.js");
 		const configExists = fs.existsSync(pathToConfig);
 		if (configExists) {
 			const userConfigFile = require(pathToConfig);

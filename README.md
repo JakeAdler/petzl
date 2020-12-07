@@ -1,4 +1,4 @@
-<h3 align="center">petzl</h3>
+<h3 align="center">quyz</h3>
 <p align="center">A lightweight testing harness for Node.js applications.</p>
 <h3 align="center">
   [ <a href="#">Wiki</a> ] :

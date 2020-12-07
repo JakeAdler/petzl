@@ -1,10 +1,10 @@
-import Runner from "./runner";
-import Collector from "./collector";
 import Configurer from "./configurer";
-import { formatTitle, registerProcessEventListeners } from "./utils";
+import Collector from "./collector";
+import Runner from "./runner";
+import { formatTitle } from "./utils";
 import { AnyVoidCB, Configuration, Title, TestCB, AnyCB } from "./types";
 
-class Petzl {
+class Quyz {
 	private runner: Runner;
 	private configurer: Configurer;
 	public collector: Collector;
@@ -71,7 +71,7 @@ class Petzl {
 	};
 }
 
-const petzl = new Petzl();
+const quyz = new Quyz();
 
 const {
 	it,
@@ -81,7 +81,7 @@ const {
 	doOnce,
 	configure,
 	collector,
-} = petzl;
+} = quyz;
 
 export {
 	it,
@@ -91,5 +91,5 @@ export {
 	doOnce,
 	configure,
 	collector,
-	Petzl,
+	Quyz,
 };
