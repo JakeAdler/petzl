@@ -1,1 +1,9 @@
-export { it, describe, beforeEach, afterEach, doOnce, configure } from "./quyz";
+export {
+	it,
+	describe,
+	beforeAll,
+	beforeEach,
+	afterAll,
+	afterEach,
+	doOnce,
+} from "./quyz";

@@ -13,35 +13,14 @@ export interface Colors {
 	yelllow: ColorFn;
 	grey: ColorFn;
 }
-class LogCache {
-	padding = "";
-	logQueue = [];
-
-	update = (logger: Logger) => {
-		this.padding = logger.padding;
-		this.logQueue = logger.logQueue;
-	};
-}
-
-const cache = new LogCache();
 
 export default class Logger {
 	logFn: LogFn;
 	colors: Colors;
 	volume: number;
-	padding: string;
-	logQueue: any[];
 
 	constructor(configuration: Configuration, useCache?: boolean) {
 		const { colors, volume, dev } = configuration;
-
-		if (!useCache || dev !== false) {
-			this.padding = "";
-			this.logQueue = [];
-		} else {
-			this.padding = cache.padding;
-			this.logQueue = cache.logQueue;
-		}
 
 		if (dev !== false) {
 			this.logFn = dev.logger.log;
@@ -53,9 +32,11 @@ export default class Logger {
 		this.colors = createColors(colors);
 	}
 
+	padding = "";
+	logQueue = [];
+
 	addPadding = () => {
 		this.padding += "  ";
-		cache.update(this);
 	};
 
 	subtractPadding = () => {
@@ -64,15 +45,13 @@ export default class Logger {
 		} else {
 			this.padding = this.padding.slice(0, this.padding.length - 2);
 		}
-		cache.update(this);
 	};
 
 	flushPadding = () => {
 		this.padding = "";
-		cache.update(this);
 	};
 
-	public dumpLogs = () => {
+	dumpLogs = () => {
 		for (let i = 0; i < this.logQueue.length; i++) {
 			const logs = this.logQueue[i];
 			this.logFn(...logs);
@@ -87,8 +66,6 @@ export default class Logger {
 		if (this.volume <= 2) {
 			this.logQueue.push(args);
 		}
-
-		cache.update(this);
 	};
 
 	pass = (title: string, runtime: number, force?: boolean) => {

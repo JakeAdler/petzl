@@ -14,7 +14,9 @@ export type LogFn = (...args: any[]) => void;
 export type Title<T extends any[]> = string | ((...args: Partial<T>) => string);
 
 export interface Hooks {
+	beforeAll: AnyVoidCB;
 	beforeEach: AnyVoidCB;
+	afterAll: AnyVoidCB;
 	afterEach: AnyVoidCB;
 }
 
@@ -26,6 +28,7 @@ export interface Context {
 }
 
 // Configuration
+
 export interface DevConfiguration {
 	logger: Pick<Console, "log">;
 }
@@ -45,6 +48,7 @@ export interface CollectorConfiguration {
 }
 
 // Collector configuration
+
 export interface SequencerConfiguration extends CollectorConfiguration {
 	use: "sequencer";
 	sequence: string[];
@@ -63,19 +67,17 @@ export interface EntryPointConfiguration extends CollectorConfiguration {
 }
 
 // Actions
+
 export interface Action {
 	type:
 		| "it"
 		| "describe-start"
 		| "describe-end"
 		| "doOnce"
-		| "hook"
-		| "configure";
-}
-
-export interface HookAction extends Action {
-	type: "hook";
-	cb: AnyVoidCB;
+		| "setHook"
+		| "configure"
+		| "file-start"
+		| "file-end";
 }
 
 export interface ItAction<T extends any[]> extends Action {
@@ -85,23 +87,45 @@ export interface ItAction<T extends any[]> extends Action {
 	args: T;
 }
 
-export interface DescribeStartAction extends Action {
-	type: "describe-start";
+export interface GroupStartAction extends Action {
+	type: "describe-start" | "file-start";
 	title: string;
+	hooks: (() => void)[];
 }
 
-export interface DescribeEndAction extends Action {
+export interface DescribeStartAction extends GroupStartAction {
+	type: "describe-start";
+}
+
+export interface FileStartAction extends GroupStartAction {
+	type: "file-start";
+}
+
+export interface GroupEndAction extends Action {
+	type: "describe-end" | "file-end";
+}
+
+export interface DescribeEndAction extends GroupEndAction {
 	type: "describe-end";
 }
 
-export interface ConfigureAction extends Action {
-	type: "configure";
-	configuration: Partial<Configuration>;
+export interface FileEndAction extends GroupEndAction {
+	type: "file-end";
+}
+
+export interface SetHookAction extends Action {
+	type: "setHook";
+	cb: AnyVoidCB;
 }
 
 export interface DoOnceAction extends Action {
 	type: "doOnce";
 	cb: AnyCB;
+}
+
+export interface ConfigureAction extends Action {
+	type: "configure";
+	configuration: Partial<Configuration>;
 }
 
 // Errors
@@ -122,8 +146,9 @@ export class InputError extends Error {
 
 // Guards
 
-export const isHookAction = (action: Action): action is HookAction => {
-	return action.type === "hook";
+// Action guards
+export const isHookAction = (action: Action): action is SetHookAction => {
+	return action.type === "setHook";
 };
 
 export const isItAction = <T extends any[]>(
@@ -154,6 +179,27 @@ export const isDoOnceAction = (action: Action): action is DoOnceAction => {
 	return action.type === "doOnce";
 };
 
+export const isFileStartAction = (
+	action: Action
+): action is FileStartAction => {
+	return action.type === "file-start";
+};
+
+export const isFileEndAction = (action: Action): action is FileEndAction => {
+	return action.type === "file-end";
+};
+
+export const isGroupStartAction = (
+	action: Action
+): action is GroupStartAction => {
+	return isFileStartAction(action) || isDescribeStartAction(action);
+};
+
+export const isGroupEndAction = (action: Action): action is GroupEndAction => {
+	return isFileEndAction(action) || isDescribeEndAction(action);
+};
+
+// Collector guards
 export const isEntryPointConfig = (
 	config: CollectorConfiguration
 ): config is EntryPointConfiguration => {

@@ -37,7 +37,10 @@ export default class Summarizer {
 	};
 
 	updateSummary = (context: Context, queue: Action[]) => {
-		if (!this.config.dev) {
+		if (
+			!this.config.dev &&
+			typeof process.stdout.moveCursor === "function"
+		) {
 			const numTests = queue.filter((action: Action) => {
 				if (isItAction(action)) {
 					return action;
@@ -52,7 +55,10 @@ export default class Summarizer {
 	};
 
 	clearSummary = () => {
-		if (!this.config.dev) {
+		if (
+			!this.config.dev &&
+			typeof process.stdout.moveCursor === "function"
+		) {
 			process.stdout.moveCursor(0, -4);
 			process.stdout.clearScreenDown();
 		}
@@ -100,7 +106,6 @@ export default class Summarizer {
 				this.logger.subtractPadding();
 			}
 		}
-
 		this.logContext(context);
 	};
 }

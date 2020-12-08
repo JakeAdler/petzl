@@ -11,14 +11,20 @@ import {
 	isDescribeEndAction,
 	isHookAction,
 	isItAction,
-	isConfigurationAction,
 	isDoOnceAction,
 	Hooks,
-	HookAction,
+	SetHookAction,
 	AnyCB,
 	Configuration,
 	Context,
 	DoOnceAction,
+	isFileStartAction,
+	FileStartAction,
+	isFileEndAction,
+	FileEndAction,
+	DescribeEndAction,
+	isGroupStartAction,
+	isGroupEndAction,
 } from "./types";
 
 export default class Runner {
@@ -45,34 +51,37 @@ export default class Runner {
 		errors: [],
 	};
 
-	private reset = () => {
-		this.context = {
-			passed: 0,
-			failed: 0,
-			testRuntime: 0,
-			errors: [],
-		};
-		this.queue = [];
-		this.logger = new Logger(this.config, false);
-		this.hijacker = new Hijacker(this.logger, this.config);
-		this.summarizer = new Summarizer(this.logger, this.config);
-	};
-
 	public queue: Action[] = [];
 
 	public pushAction = <A extends Action>(action: A) => {
 		this.queue.push(action);
 	};
 
-	private reloadConfig = (options: Partial<Configuration>) => {
-		this.hijacker.resetGlobalLog();
-		this.configurer.applyConfig(options, true);
-		this.logger = new Logger(this.config);
-		this.hijacker = new Hijacker(this.logger, this.config);
+	public resetRunner = () => {
+		if (this.dev) {
+			this.queue = [];
+			this.context = {
+				passed: 0,
+				failed: 0,
+				testRuntime: 0,
+				errors: [],
+			};
+			this.logger.logQueue = [];
+		} else {
+			throw new Error("This is a dev method, and dev is not set to true");
+		}
 	};
 
 	public run = async () => {
-		const { queue, evaluateTest, startGroup, stopGroup, doOnce } = this;
+		const {
+			queue,
+			handleItAction,
+			handleGroupStartAction,
+			handleGroupEndAction,
+			handleDoOnceAction,
+		} = this;
+
+		await this.processQueue();
 
 		if (!this.dev) {
 			this.summarizer.updateSummary(this.context, queue);
@@ -82,28 +91,23 @@ export default class Runner {
 			for (let i = 0; i < queue.length; i++) {
 				const action = queue[i];
 
-				if (isHookAction(action)) {
-					await action.cb();
-				}
-
-				if (isItAction(action)) {
-					await evaluateTest(action);
-				}
-
-				if (isDescribeStartAction(action)) {
-					await startGroup(action);
-				}
-
-				if (isDescribeEndAction(action)) {
-					await stopGroup();
+				if (isGroupStartAction(action)) {
+					await handleGroupStartAction(action);
 				}
 
 				if (isDoOnceAction(action)) {
-					await doOnce(action);
+					await handleDoOnceAction(action);
 				}
 
-				if (isConfigurationAction(action)) {
-					this.reloadConfig(action.configuration);
+				if (isItAction(action)) {
+					await handleItAction(action);
+				}
+
+				if (isGroupEndAction(action)) {
+					await handleGroupEndAction(action);
+				}
+
+				if (isFileEndAction(action)) {
 				}
 			}
 		} finally {
@@ -112,12 +116,38 @@ export default class Runner {
 			}
 			this.hijacker.resetGlobalLog();
 			this.summarizer.endReport(this.context);
-			this.reset();
 		}
 	};
 
-	private hooks: Hooks = {
+	private processQueue = async () => {
+		let processed: Action[] = [],
+			contextStartIndex = 0;
+
+		for (let i = 0; i < this.queue.length; i++) {
+			const action = this.queue[i];
+			if (isDescribeStartAction(action) || isFileStartAction(action)) {
+				contextStartIndex = i;
+			}
+
+			if (isHookAction(action)) {
+				const contextStartAction = this.queue[contextStartIndex];
+
+				if (isGroupStartAction(contextStartAction)) {
+					contextStartAction.hooks.push(action.cb);
+					continue;
+				}
+			}
+
+			processed.push(action);
+		}
+
+		this.queue = processed;
+	};
+
+	public hooks: Hooks = {
+		beforeAll: () => {},
 		beforeEach: () => {},
+		afterAll: () => {},
 		afterEach: () => {},
 	};
 
@@ -137,12 +167,6 @@ export default class Runner {
 		}
 	};
 
-	private doOnce = async (action: DoOnceAction) => {
-		this.hijacker.hijackConsoleLogs();
-		await this.runCb(action.cb, "(hook) doOnce");
-		this.hijacker.releaseDoOnceLog();
-	};
-
 	private runCb = async (cb: AnyCB, location: string) => {
 		try {
 			await cb();
@@ -151,15 +175,15 @@ export default class Runner {
 		}
 	};
 
-	private runHook = async (hookName: keyof Hooks, testName: string) => {
+	private runHook = async (hookName: keyof Hooks, testName?: string) => {
 		this.hijacker.hijackConsoleLogs();
 		await this.runCb(this.hooks[hookName], `(hook) ${hookName}`);
 		this.hijacker.releaseHookLog(hookName, testName);
 	};
 
 	public pushHookAction = (hookName: keyof Hooks, cb: AnyCB) => {
-		const action: HookAction = {
-			type: "hook",
+		const action: SetHookAction = {
+			type: "setHook",
 			cb: () => {
 				this.hooks[hookName] = cb;
 			},
@@ -167,20 +191,50 @@ export default class Runner {
 		this.pushAction(action);
 	};
 
-	private startGroup = async (group: DescribeStartAction) => {
-		const { logger, cacheAndResetHooks } = this;
-		logger.addPadding();
-		logger.logGroupTitle(group.title);
-		cacheAndResetHooks();
+	private handleDoOnceAction = async (action: DoOnceAction) => {
+		this.hijacker.hijackConsoleLogs();
+		await this.runCb(action.cb, "(hook) doOnce");
+		this.hijacker.releaseDoOnceLog();
 	};
 
-	private stopGroup = async () => {
+	private handleGroupStartAction = async (
+		action: FileStartAction | DescribeStartAction
+	) => {
+		const { logger, cacheAndResetHooks } = this;
+
+		if (isDescribeStartAction(action)) {
+			logger.logGroupTitle(action.title);
+			logger.addPadding();
+		}
+
+		if (isFileStartAction(action)) {
+			logger.logTestFileName(action.title);
+		}
+
+		cacheAndResetHooks();
+
+		for (const hook of action.hooks) {
+			hook();
+		}
+
+		this.runHook("beforeAll");
+	};
+
+	private handleGroupEndAction = async (
+		action: DescribeEndAction | FileEndAction
+	) => {
 		const { logger, useCachedHooks } = this;
-		logger.subtractPadding();
+
+		await this.runHook("afterAll");
+
+		if (isDescribeEndAction(action)) {
+			logger.subtractPadding();
+		}
+
 		useCachedHooks();
 	};
 
-	private evaluateTest = async <T extends any[]>(
+	private handleItAction = async <T extends any[]>(
 		action: ItAction<T>
 	): Promise<void> => {
 		this.summarizer.clearSummary();

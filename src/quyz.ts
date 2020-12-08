@@ -1,6 +1,7 @@
 import Configurer from "./configurer";
 import Collector from "./collector";
 import Runner from "./runner";
+import Dev from "./dev";
 import { formatTitle } from "./utils";
 import { AnyVoidCB, Configuration, Title, TestCB, AnyCB } from "./types";
 
@@ -8,11 +9,15 @@ class Quyz {
 	private runner: Runner;
 	private configurer: Configurer;
 	public collector: Collector;
+	public dev: Dev;
 
 	constructor(configuration?: Configuration) {
 		this.configurer = new Configurer(configuration);
 		this.runner = new Runner(this.configurer);
 		this.collector = new Collector(this.runner, this.configurer);
+		if (this.configurer.config.dev) {
+			this.dev = new Dev(this.runner, this.collector);
+		}
 	}
 
 	public beforeEach = (cb: AnyVoidCB) => {
@@ -23,20 +28,18 @@ class Quyz {
 		this.runner.pushHookAction("afterEach", cb);
 	};
 
+	public beforeAll = (cb: AnyVoidCB) => {
+		this.runner.pushHookAction("beforeAll", cb);
+	};
+
+	public afterAll = (cb: AnyVoidCB) => {
+		this.runner.pushHookAction("afterAll", cb);
+	};
+
 	public doOnce = (cb: AnyCB) => {
 		this.runner.pushAction({
 			type: "doOnce",
 			cb,
-		});
-	};
-
-	public configure = (
-		options: Omit<Configuration, "collector" | "require">
-	) => {
-		this.configurer.validateConfig(options, true);
-		this.runner.pushAction({
-			type: "configure",
-			configuration: options,
 		});
 	};
 
@@ -61,6 +64,7 @@ class Quyz {
 		this.runner.pushAction({
 			type: "describe-start",
 			title: formatTitle(title, ...args),
+			hooks: [],
 		});
 
 		cb(...args);
@@ -76,20 +80,22 @@ const quyz = new Quyz();
 const {
 	it,
 	describe,
+	beforeAll,
 	beforeEach,
+	afterAll,
 	afterEach,
 	doOnce,
-	configure,
 	collector,
 } = quyz;
 
 export {
 	it,
 	describe,
+	beforeAll,
 	beforeEach,
+	afterAll,
 	afterEach,
 	doOnce,
-	configure,
 	collector,
 	Quyz,
 };

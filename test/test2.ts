@@ -1,4 +1,4 @@
-import { it, beforeEach, beforeAll, afterAll, describe } from "../dist";
+import { it, beforeEach, afterAll, doOnce, describe } from "../dist";
 import { quyz, reset, store } from "../test-utils/quyz";
 import assert from "assert";
 import { isItAction, ItAction } from "../dist/types";
@@ -64,22 +64,6 @@ import { isItAction, ItAction } from "../dist/types";
 /* 		reset(); */
 /* 	}); */
 /* }); */
-
-beforeAll(() => {
-	console.log("before");
-});
-afterAll(() => {
-	console.log("done");
-});
-
-it("wow", () => {});
-it("wow", () => {});
-it("wow", () => {});
-
-describe("group", () => {
-	it("nested", () => {});
-	it("nested", () => {});
-});
 
 it("wow", () => {});
 it("wow", () => {});

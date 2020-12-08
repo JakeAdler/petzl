@@ -10,6 +10,10 @@ class Store {
 	getLogs = () => {
 		return this.logs;
 	};
+
+	reset = () => {
+		this.logs = [];
+	};
 }
 const store = new Store();
 
@@ -22,8 +26,13 @@ const quyz = new Quyz({
 	colors: false,
 	collector: {
 		use: "sequencer",
-		sequence: ["test-utils/test-tests/it.ts"],
+		sequence: ["test-utils/suites/it.ts"],
 	},
 });
 
-export { quyz, store };
+const reset = () => {
+	quyz.dev.resetRunner();
+	store.reset();
+};
+
+export { quyz, store, reset };

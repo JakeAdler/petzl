@@ -53,7 +53,11 @@ export default class Hijacker {
 	// Release logs captured by hooks
 	public releaseHookLog = (hookName: keyof Hooks, testName?: string) => {
 		if (this.capturedLogs.length && this.volume >= 2) {
-			this.log(this.colors.blue(`${hookName} (${testName}):`));
+			this.log(
+				this.colors.blue(
+					`${hookName}${testName ? ` (${testName})` : ""}:`
+				)
+			);
 			this.releaseCaputredlogs();
 		}
 		this.capturedLogs = [];

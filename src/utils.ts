@@ -34,11 +34,12 @@ export const registerProcessEventListeners = (logger: Logger) => {
 	process.on("uncaughtException", (err) => {
 		let message: string;
 		if (err instanceof InputError) {
-			message = err.message;
+			message = "   " + err.message;
 		} else {
-			message = `${cleanStack(err)} \n ${err.message}`;
+			message = `${cleanStack(err)} \n   ${err.message}`;
 		}
-		logger.logFn(logger.colors.red(`Failed (${err.name}): \n`), message);
+		logger.logFn(logger.colors.red(`Failed (${err.name}):`));
+		logger.logFn("  ", message);
 	});
 };
 
