@@ -29,17 +29,14 @@ export interface Context {
 
 // Configuration
 
-export interface DevConfiguration {
-	logger: Pick<Console, "log">;
-}
-
 export interface Configuration {
-	collector?: CollectorConfiguration;
+	collector: CollectorConfiguration;
+	colors: boolean;
+	printFileNames: boolean;
+	bubbleHooks: boolean;
+	volume: number;
+	dev: boolean;
 	require?: string[];
-	colors?: boolean;
-	bubbleHooks?: boolean;
-	volume?: number;
-	dev?: false | DevConfiguration;
 }
 
 export interface CollectorConfiguration {

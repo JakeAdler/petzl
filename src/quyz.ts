@@ -1,7 +1,7 @@
 import Configurer from "./configurer";
 import Collector from "./collector";
 import Runner from "./runner";
-import Dev from "./dev";
+import Dev, { devLogStore } from "./dev";
 import { formatTitle } from "./utils";
 import { AnyVoidCB, Configuration, Title, TestCB, AnyCB } from "./types";
 
@@ -11,7 +11,7 @@ class Quyz {
 	public collector: Collector;
 	public dev: Dev;
 
-	constructor(configuration?: Configuration) {
+	constructor(configuration?: Partial<Configuration>) {
 		this.configurer = new Configurer(configuration);
 		this.runner = new Runner(this.configurer);
 		this.collector = new Collector(this.runner, this.configurer);

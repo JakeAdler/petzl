@@ -7,11 +7,12 @@ import {
 } from "./types";
 import fs from "fs";
 import path from "path";
+import assert, { AssertionError } from "assert";
 
 export default class Configurer {
 	public config: Configuration;
 
-	constructor(options?: Configuration) {
+	constructor(options?: Partial<Configuration>) {
 		this.config = this.defaultConfiguration;
 
 		if (options) {
@@ -27,11 +28,12 @@ export default class Configurer {
 		},
 		volume: 3,
 		bubbleHooks: false,
+		printFileNames: true,
 		colors: true,
 		dev: false,
 	};
 
-	public applyConfig = (options: Configuration) => {
+	public applyConfig = (options: Partial<Configuration>) => {
 		this.validateConfig(options);
 		this.requireRequires(options);
 		this.config = Object.assign({}, this.defaultConfiguration, options);
@@ -68,126 +70,111 @@ export default class Configurer {
 
 	public validateConfig = (config: Partial<Configuration>) => {
 		if (!config) return;
-		// dev
-		if (config.dev) {
-			if (!config.dev.logger) {
-				if (typeof config.dev !== "object") {
-					throw new ConfigError(
-						"dev",
-						"dev can either be set to 'false' or DevConfiguration"
-					);
-				} else {
-					throw new ConfigError(
-						"dev",
-						"dev must contain the property logger"
-					);
-				}
-			}
-		}
 
-		// require
-		if (config.require) {
-			for (const requiredModule of config.require) {
-				if (typeof requiredModule !== "string") {
-					throw new ConfigError(
-						`require[${requiredModule}]`,
-						"Must be a string"
-					);
-				}
-			}
-		}
+		type Type = "string" | "boolean" | "number" | "array";
 
-		// colors
-		if (config.colors) {
-			if (typeof config.colors !== "boolean") {
-				throw new ConfigError("colors", "Must be a boolean");
-			}
-		}
-
-		// volume
-		if (config.volume) {
-			if (typeof config.volume !== "number") {
-				throw new ConfigError("volume", "Must be a number");
-			}
-		}
-
-		// bubbleHooks
-		if (config.bubbleHooks) {
-			if (typeof config.bubbleHooks !== "boolean") {
-				throw new ConfigError("bubbleHooks", "Must be a boolean");
-			}
-		}
-
-		// collector
-		if (config.collector) {
-			const collectorConfig = config.collector;
-
-			if (isMatchExtensionsConfig(collectorConfig)) {
-				// validate matchExtensions config
-				if (collectorConfig.root) {
-					const rootExists = fs.existsSync(collectorConfig.root);
-					if (!rootExists) {
-						throw new ConfigError(
-							"collector.root",
-							`directory ${collectorConfig.root} does not exist`
-						);
-					}
-					throw new ConfigError(
-						"collector.root",
-						"is required to use the 'matchExtensions' collector"
-					);
-				}
-				if (!collectorConfig.match) {
-					throw new ConfigError(
-						"collector.match",
-						"is required to use the 'matchExtensions' collector"
-					);
-				} else {
-					if (!Array.isArray(collectorConfig.match)) {
-						throw new ConfigError(
-							"collector.root",
-							"must be an Array"
-						);
-					} else {
-						for (const matcher of collectorConfig.match) {
-							if (matcher.charAt(0) !== ".") {
-								throw new ConfigError(
-									"collector.match",
-									`: Matcher should begin with '.', but got '${matcher}'`
-								);
-							}
-						}
-					}
-				}
-			} else if (isEntryPointConfig(collectorConfig)) {
-				// validate
-			} else if (isSequencerConfig(collectorConfig)) {
-				// validate sequencer config
-				//TODO: Validate 'ignore' option
-				if (!collectorConfig.sequence) {
-					throw new ConfigError(
-						"collector.sequence",
-						"is required to use the 'sequencer' collector"
-					);
-				} else {
-					if (!Array.isArray(collectorConfig.sequence)) {
-						throw new ConfigError(
-							"collector.sequence",
-							"is required to be an Array"
-						);
-					} else {
-						collectorConfig.sequence.forEach((fileOrDir) => {
-							const exists = fs.existsSync(fileOrDir);
-							if (!exists) {
-								throw new ConfigError(
-									"collector.include",
-									`path in sequence does not exist -> "${fileOrDir}"`
-								);
-							}
+		const isType = (optionName: string, val: any, type: Type) => {
+			try {
+				if (val) {
+					if (type === "array" && !Array.isArray(val)) {
+						throw new AssertionError({
+							message: "",
+							expected: "array",
+							actual: typeof val,
 						});
 					}
+					assert.strictEqual(typeof val, type);
 				}
-			} else {
+			} catch (err) {
+				throw new ConfigError(
+					optionName,
+					`Expected option to be of type ${type} but got '${err.actual}'`
+				);
+			}
+		};
+
+		const isRequired = (optionName: string, val: any, message?: string) => {
+			if (val === undefined || val === null) {
+				throw new ConfigError(
+					optionName,
+					message ? message : "option is required"
+				);
+			}
+		};
+
+		// require
+		config.require &&
+			config.require.forEach((req) => {
+				isType("require", req, "string");
+			});
+
+		// colors
+		isType("colors", config.colors, "boolean");
+
+		// volume
+		isType("volume", config.colors, "number");
+
+		// bubbleHooks
+		isType("bubbleHooks", config.bubbleHooks, "boolean");
+
+		// collector
+		const collectorConfig: any = config.collector ? config.collector : {};
+
+		if (isMatchExtensionsConfig(collectorConfig)) {
+			// validate matchExtensions config
+			const requiredMessage =
+				"is required to use the 'matchExtensions' collector";
+
+			isRequired("collector.root", collectorConfig.root, requiredMessage);
+
+			isRequired(
+				"collector.match",
+				collectorConfig.match,
+				requiredMessage
+			);
+
+			isType("collector.match", collectorConfig.match, "array");
+
+			const rootExists = fs.existsSync(collectorConfig.root);
+			if (!rootExists) {
+				throw new ConfigError(
+					"collector.root",
+					`directory ${collectorConfig.root} does not exist`
+				);
+			}
+
+			for (const matcher of collectorConfig.match) {
+				if (matcher.charAt(0) !== ".") {
+					throw new ConfigError(
+						"collector.match",
+						`: Matcher should begin with '.', but got '${matcher}'`
+					);
+				}
+			}
+		} else if (isEntryPointConfig(collectorConfig)) {
+			// validate
+		} else if (isSequencerConfig(collectorConfig)) {
+			// validate sequencer config
+			//TODO: Validate 'ignore' option
+			isRequired(
+				"collector.sequence",
+				collectorConfig.sequence,
+				"is required to use the 'sequencer' collector"
+			);
+
+			isType("collector.sequence", collectorConfig.sequence, "array");
+
+			collectorConfig.sequence.forEach((fileOrDir) => {
+				const exists = fs.existsSync(fileOrDir);
+				if (!exists) {
+					throw new ConfigError(
+						"collector.include",
+						`path in sequence does not exist -> "${fileOrDir}"`
+					);
+				}
+			});
+		} else {
+			if (config.collector) {
 				throw new ConfigError(
 					"runner",
 					`Unknown collector, check configuration `

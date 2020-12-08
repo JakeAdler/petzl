@@ -1,6 +1,6 @@
-import { quyz } from "../quyz";
-import { add } from "../spied-methods";
-const { it, beforeEach } = quyz;
+import { quyz } from "../../quyz";
+import { add } from "./spy";
+const { it } = quyz;
 
 it("1 + 1 === 2", () => {
 	add(1, 1, 2);

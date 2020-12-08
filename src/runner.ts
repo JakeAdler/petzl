@@ -38,7 +38,7 @@ export default class Runner {
 	constructor(configurer: Configurer) {
 		this.configurer = configurer;
 		this.config = this.configurer.config;
-		this.dev = this.config.dev === false ? false : true;
+		this.dev = this.config.dev;
 		this.logger = new Logger(this.config);
 		this.hijacker = new Hijacker(this.logger, this.config);
 		this.summarizer = new Summarizer(this.logger, this.config);
@@ -57,8 +57,11 @@ export default class Runner {
 		this.queue.push(action);
 	};
 
-	public resetRunner = () => {
+	public reset = () => {
 		if (this.dev) {
+			this.queue.filter(isFileStartAction).forEach((action) => {
+				delete require.cache[action.title];
+			});
 			this.queue = [];
 			this.context = {
 				passed: 0,
@@ -107,8 +110,6 @@ export default class Runner {
 					await handleGroupEndAction(action);
 				}
 
-				if (isFileEndAction(action)) {
-				}
 			}
 		} finally {
 			if (!this.dev) {
@@ -217,7 +218,7 @@ export default class Runner {
 			hook();
 		}
 
-		this.runHook("beforeAll");
+		await this.runHook("beforeAll");
 	};
 
 	private handleGroupEndAction = async (

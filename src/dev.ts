@@ -2,8 +2,8 @@ import Collector from "./collector";
 import Runner from "./runner";
 
 export default class Dev {
-	private runner: Runner;
-	private collector: Collector;
+	public runner: Runner;
+	public collector: Collector;
 
 	constructor(runner: Runner, collector: Collector) {
 		this.runner = runner;
@@ -22,11 +22,32 @@ export default class Dev {
 		return this.runner.hooks;
 	};
 
+	getLogs = () => {
+		return devLogStore.getLogs();
+	};
+
+	reset = () => {
+		this.runner.reset();
+		devLogStore.reset();
+	};
+
 	collect = async (path: string) => {
 		await this.collector.devCollect(path);
 	};
+}
 
-	resetRunner = () => {
-		this.runner.resetRunner();
+class DevLogStore {
+	private logs = [];
+
+	getLogs = () => this.logs;
+
+	reset = () => {
+		this.logs = [];
+	};
+
+	log = (...args: any[]) => {
+		this.logs.push(args);
 	};
 }
+
+export const devLogStore = new DevLogStore();

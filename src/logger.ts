@@ -1,5 +1,6 @@
 import { LogFn, Configuration } from "./types";
 import { createColors } from "./utils";
+import { devLogStore } from "./dev";
 
 export type ColorFn = (...args: any[]) => string;
 
@@ -19,11 +20,11 @@ export default class Logger {
 	colors: Colors;
 	volume: number;
 
-	constructor(configuration: Configuration, useCache?: boolean) {
+	constructor(configuration: Configuration) {
 		const { colors, volume, dev } = configuration;
 
-		if (dev !== false) {
-			this.logFn = dev.logger.log;
+		if (dev) {
+			this.logFn = devLogStore.log;
 		} else {
 			this.logFn = console.log;
 		}

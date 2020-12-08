@@ -105,6 +105,8 @@ export default class Summarizer {
 				}
 				this.logger.subtractPadding();
 			}
+		} else {
+			log("\n")
 		}
 		this.logContext(context);
 	};
