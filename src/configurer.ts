@@ -104,6 +104,7 @@ export default class Configurer {
 			}
 		};
 
+
 		// require
 		config.require &&
 			config.require.forEach((req) => {

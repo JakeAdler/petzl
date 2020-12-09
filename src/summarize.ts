@@ -66,50 +66,77 @@ export default class Summarizer {
 		}
 	};
 
-	endReport = (context: Context) => {
-		const { flushPadding, logFn: log, colors, dumpLogs } = this.logger;
-		const { errors } = context;
+	updateResolveLogs = (completed: number, total: number, clear = true) => {
+		if (
+			!this.config.dev &&
+			typeof process.stdout.moveCursor === "function"
+		) {
+			if (clear) this.clearResolveLogs();
 
-		dumpLogs();
+			this.logger.logFn(
+				this.logger.colors.yelllow("Resolving"),
+				`(${completed}/${total})`
+			);
+		}
+	};
 
-		flushPadding();
+	clearResolveLogs = () => {
+		if (
+			!this.config.dev &&
+			typeof process.stdout.moveCursor === "function"
+		) {
+			process.stdout.moveCursor(0, -1);
+			process.stdout.clearScreenDown();
+		}
+	};
+
+	private parseErrors = (errors: [any, string][]) => {
+		const { logFn: log, colors } = this.logger;
 
 		if (errors.length) {
-			for (let i = 0; i < errors.length; i++) {
-				const [error, title] = errors[i];
-
+			for (const error of errors) {
+				const [err, title] = error;
 				log(colors.red(colors.bold(`\nFailed: ${title}`)));
 
 				this.logger.addPadding();
-				if (error instanceof Error) {
-					const stack = cleanStack(error);
+				if (err instanceof Error) {
+					const stack = cleanStack(err);
 					log(stack);
 
-					if (error instanceof AssertionError) {
+					if (err instanceof AssertionError) {
 						const expected =
-							typeof error.expected === "object"
-								? inspect(error.expected, false, 1)
-								: error.expected;
+							typeof err.expected === "object"
+								? inspect(err.expected, false, 1)
+								: err.expected;
 
 						const actual =
-							typeof error.actual === "object"
-								? inspect(error.actual, false, 1)
-								: error.actual;
+							typeof err.actual === "object"
+								? inspect(err.actual, false, 1)
+								: err.actual;
 
-						log("   ", error.message.split(":")[0]);
+						log("   ", err.message.split(":")[0]);
 						log("   ", colors.green(`expected: ${expected}`));
 						log("   ", colors.red(`recieved: ${actual}`), "\n");
 					} else {
-						log(error, "\n");
+						log(err, "\n");
 					}
 				} else {
-					log(error, "\n");
+					log(err, "\n");
 				}
 				this.logger.subtractPadding();
 			}
 		} else {
 			log("\n");
 		}
+	};
+
+	endReport = (context: Context) => {
+		this.logger.dumpLogs();
+
+		this.logger.flushPadding();
+
+		this.parseErrors(context.errors);
+
 		this.logContext(context);
 	};
 }

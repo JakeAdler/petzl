@@ -7,7 +7,7 @@ export type AnyVoidCB = () => AnyVoid;
 
 export type AnyCB = () => Promise<any> | any;
 
-export type TestCB<T extends any[]> = (...macroArgs: T) => AnyVoid;
+export type MacroCB<T extends any[]> = (...macroArgs: T) => AnyVoid;
 
 export type LogFn = (...args: any[]) => void;
 
@@ -68,6 +68,7 @@ export interface EntryPointConfiguration extends CollectorConfiguration {
 export interface Action {
 	type:
 		| "it"
+		| "describe"
 		| "describe-start"
 		| "describe-end"
 		| "doOnce"
@@ -80,7 +81,7 @@ export interface Action {
 export interface ItAction<T extends any[]> extends Action {
 	type: "it";
 	title: string;
-	cb: TestCB<T>;
+	cb: MacroCB<T>;
 	args: T;
 }
 
@@ -88,6 +89,12 @@ export interface GroupStartAction extends Action {
 	type: "describe-start" | "file-start";
 	title: string;
 	hooks: (() => void)[];
+}
+
+export interface DescribeAction<T extends any[]> extends Action {
+	type: "describe";
+	cb: MacroCB<T>;
+	args: T;
 }
 
 export interface DescribeStartAction extends GroupStartAction {
@@ -105,7 +112,6 @@ export interface FileStartAction extends GroupStartAction {
 export interface GroupEndAction extends Action {
 	type: "describe-end" | "file-end";
 }
-
 
 export interface FileEndAction extends GroupEndAction {
 	type: "file-end";
@@ -153,6 +159,12 @@ export const isItAction = <T extends any[]>(
 	action: Action
 ): action is ItAction<T> => {
 	return action.type === "it";
+};
+
+export const isDescribeAction = <T extends any[]>(
+	action: Action
+): action is DescribeAction<T> => {
+	return action.type === "describe";
 };
 
 export const isDescribeStartAction = (

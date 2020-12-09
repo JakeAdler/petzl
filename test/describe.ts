@@ -8,6 +8,8 @@ import {
 	isItAction,
 } from "../dist/types";
 
+const sleep = () => new Promise((resolve) => setTimeout(resolve, 1000));
+
 describe("describe suite", () => {
 	beforeAll(async () => {
 		await quyz.dev.collect("test-utils/suites/describe/describe.ts");
@@ -72,5 +74,9 @@ describe("describe suite", () => {
 			assert.strictEqual(startAction.hooks.length, 1);
 			assert(typeof startAction.hooks[0] === "function");
 		}
+	});
+
+	describe("Title", () => {
+		it("haha", () => {});
 	});
 });

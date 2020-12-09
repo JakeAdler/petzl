@@ -107,8 +107,12 @@ export default class Logger {
 		type: "file" | "directory" | "files matching",
 		name: string
 	) => {
-		this.logFn(
-			this.colors.bold(this.colors.underline(`Running ${type} ${name}`))
-		);
+		if (this.volume >= 3) {
+			this.logFn(
+				this.colors.bold(
+					this.colors.underline(`Running ${type} ${name}`)
+				)
+			);
+		}
 	};
 }

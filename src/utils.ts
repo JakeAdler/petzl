@@ -1,7 +1,7 @@
 import { performance } from "perf_hooks";
 import { devLogStore } from "./dev";
 import Logger from "./logger";
-import { ConfigError, Configuration, InputError, Title } from "./types";
+import { InputError, Title } from "./types";
 
 export class Clock {
 	constructor() {
@@ -86,15 +86,16 @@ export const createColors = (real: boolean): Logger["colors"] => {
 	} else {
 		// prettier-ignore-start
 		const reset = "\x1b[0m";
+		const init = "\x1b[";
 		return {
-			underline: (...args) => `\x1b[4m${args}${reset}`,
-			bold: (...args) => `\x1b[1m${args}${reset}`,
-			red: (...args) => `\x1b[31m${args}${reset}`,
-			blue: (...args) => `\x1b[34m${args}${reset}`,
-			green: (...args) => `\x1b[32m${args}${reset}`,
-			yelllow: (...args) => `\x1b[33m${args}${reset}`,
-			magenta: (...args) => `\x1b[35m${args}${reset}`,
-			grey: (...args) => `\x1b[90m${args}${reset}`,
+			underline: (...args) => `${init}4m${args}${reset}`,
+			bold: (...args) => `${init}1m${args}${reset}`,
+			red: (...args) => `${init}31m${args}${reset}`,
+			blue: (...args) => `${init}34m${args}${reset}`,
+			green: (...args) => `${init}32m${args}${reset}`,
+			yelllow: (...args) => `${init}33m${args}${reset}`,
+			magenta: (...args) => `${init}35m${args}${reset}`,
+			grey: (...args) => `${init}90m${args}${reset}`,
 		};
 		// prettier-ignore-end;
 	}

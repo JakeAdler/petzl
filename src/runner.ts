@@ -24,10 +24,10 @@ import {
 	DescribeEndAction,
 	isGroupStartAction,
 	isGroupEndAction,
+	isDescribeAction,
 } from "./types";
 
 export default class Runner {
-	configurer: Configurer;
 	config: Configuration;
 	logger: Logger;
 	hijacker: Hijacker;
@@ -35,8 +35,7 @@ export default class Runner {
 	dev: boolean;
 
 	constructor(configurer: Configurer) {
-		this.configurer = configurer;
-		this.config = this.configurer.config;
+		this.config = configurer.config;
 		this.dev = this.config.dev;
 		this.logger = new Logger(this.config);
 		this.hijacker = new Hijacker(this.logger, this.config);
@@ -67,13 +66,18 @@ export default class Runner {
 
 	// Public methods
 	public pushHookAction = (hookName: keyof Hooks, cb: AnyCB) => {
-		const action: SetHookAction = {
-			type: "setHook",
-			cb: () => {
+		const lastGroupStart = this.queue.filter(isGroupStartAction);
+		const index = this.queue.indexOf(
+			lastGroupStart[lastGroupStart.length - 1]
+		);
+
+		const lastGroupStartAction = this.queue[index];
+
+		if (isGroupStartAction(lastGroupStartAction)) {
+			lastGroupStartAction.hooks.push(() => {
 				this.hooks[hookName] = cb;
-			},
-		};
-		this.pushAction(action);
+			});
+		}
 	};
 
 	public reset = () => {
@@ -98,7 +102,6 @@ export default class Runner {
 		const {
 			dev,
 			context,
-			queue,
 			handleItAction,
 			handleGroupStartAction,
 			handleGroupEndAction,
@@ -109,23 +112,23 @@ export default class Runner {
 		await this.processQueue();
 
 		if (!dev) {
-			summarizer.updateSummary(context, queue, false);
+			summarizer.updateSummary(context, this.queue, false);
 		}
 
 		try {
-			for (let i = 0; i < queue.length; i++) {
-				const action = queue[i];
+			for (let i = 0; i < this.queue.length; i++) {
+				const action = this.queue[i];
 
-				if (isGroupStartAction(action)) {
-					await handleGroupStartAction(action);
+				if (isItAction(action)) {
+					await handleItAction(action);
 				}
 
 				if (isDoOnceAction(action)) {
 					await handleDoOnceAction(action);
 				}
 
-				if (isItAction(action)) {
-					await handleItAction(action);
+				if (isGroupStartAction(action)) {
+					await handleGroupStartAction(action);
 				}
 
 				if (isGroupEndAction(action)) {
@@ -143,29 +146,49 @@ export default class Runner {
 
 	// Private helpers
 
-	private processQueue = async () => {
-		let processed: Action[] = [],
-			contextStartIndex = 0;
+	private resolveDescribes = async () => {
+		const { queue } = this;
+		this.queue = [];
 
-		for (let i = 0; i < this.queue.length; i++) {
-			const action = this.queue[i];
-			if (isDescribeStartAction(action) || isFileStartAction(action)) {
-				contextStartIndex = i;
-			}
+		const walk = async () => {
+			for (let i = 0; i < queue.length; i++) {
+				const action = queue[i];
 
-			if (isHookAction(action)) {
-				const contextStartAction = this.queue[contextStartIndex];
-
-				if (isGroupStartAction(contextStartAction)) {
-					contextStartAction.hooks.push(action.cb);
-					continue;
+				if (isDescribeAction(action)) {
+					const { cb, args } = action;
+					await cb(...args);
+				} else {
+					this.pushAction(action);
 				}
 			}
+		};
 
-			processed.push(action);
+		await walk();
+	};
+
+	private totalDescribes = 0;
+	private describesLeft = 0;
+
+	private processQueue = async () => {
+		const doesContainDescribes = () => {
+			return this.queue.filter(isDescribeAction).length;
+		};
+
+		this.totalDescribes = doesContainDescribes();
+
+		if (this.totalDescribes) {
+			this.summarizer.updateResolveLogs(0, this.totalDescribes, false);
 		}
 
-		this.queue = processed;
+		while (doesContainDescribes()) {
+			this.describesLeft += 1;
+			this.summarizer.updateResolveLogs(
+				this.describesLeft,
+				this.totalDescribes
+			);
+			await this.resolveDescribes();
+		}
+		if (this.totalDescribes) this.summarizer.clearResolveLogs();
 	};
 
 	private useCachedHooks = () => {
@@ -175,7 +198,7 @@ export default class Runner {
 	private cacheAndResetHooks = () => {
 		this.hooksCache.push({ ...this.hooks });
 
-		if (this.config.bubbleHooks !== true) {
+		if (!this.config.bubbleHooks) {
 			for (const hook in this.hooks) {
 				this.hooks[hook] = () => {};
 			}

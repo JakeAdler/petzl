@@ -1,6 +1,6 @@
 {
 	"name": "quyz",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": " A lightweight testing harness for Node.js applications.",
 	"bin": {
 		"quyz": "quyz.js"
@@ -9,6 +9,7 @@
 	"types": "dist/index.d.ts",
 	"scripts": {
 		"test": "./quyz.js",
+		"cov": "nyc npm t",
 		"prepublish": "tsc"
 	},
 	"keywords": [],
@@ -17,8 +18,10 @@
 	"devDependencies": {
 		"@types/node": "^14.14.9",
 		"@types/sinon": "^9.0.9",
+		"nyc": "^15.1.0",
 		"sinon": "^9.2.1",
 		"ts-node": "^9.0.0",
-		"typescript": "^4.1.2"
+		"typedoc": "^0.19.2",
+		"typescript": "^4.0.0"
 	}
 }

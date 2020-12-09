@@ -3,7 +3,7 @@ import Collector from "./collector";
 import Runner from "./runner";
 import Dev from "./dev";
 import { formatTitle } from "./utils";
-import { AnyVoidCB, Configuration, Title, TestCB, AnyCB } from "./types";
+import { AnyVoidCB, Configuration, Title, MacroCB, AnyCB } from "./types";
 import NodeAssert from "assert";
 
 class Quyz {
@@ -48,7 +48,7 @@ class Quyz {
 
 	public it = <T extends any[]>(
 		title: Title<T>,
-		cb: TestCB<T>,
+		cb: MacroCB<T>,
 		...args: T
 	): void => {
 		this.runner.pushAction({
@@ -70,7 +70,11 @@ class Quyz {
 			hooks: [],
 		});
 
-		cb(...args);
+		this.runner.pushAction({
+			type: "describe",
+			cb: cb.bind(this),
+			args,
+		});
 
 		this.runner.pushAction({
 			type: "describe-end",

@@ -26,23 +26,24 @@ export default class Collector {
 	}
 
 	// Recursively get all files in dirPath
-	private getAllFiles = (dirPath: string, arrayOfFiles?: string[]) => {
+	private getAllFiles = (dirPath: string) => {
 		const files = fs.readdirSync(dirPath);
 
-		arrayOfFiles = arrayOfFiles || [];
+		const walk = (dir: string, arrayOfFiles?: string[]) => {
+			arrayOfFiles = arrayOfFiles || [];
 
-		files.forEach((file) => {
-			if (fs.statSync(dirPath + "/" + file).isDirectory()) {
-				arrayOfFiles = this.getAllFiles(
-					dirPath + "/" + file,
-					arrayOfFiles
-				);
-			} else {
-				arrayOfFiles.push(path.join(dirPath, "/", file));
-			}
-		});
+			files.forEach((file) => {
+				if (fs.statSync(dir + "/" + file).isDirectory()) {
+					arrayOfFiles = walk(dir + "/" + file, arrayOfFiles);
+				} else {
+					arrayOfFiles.push(path.join(dirPath, "/", file));
+				}
+			});
 
-		return arrayOfFiles;
+			return arrayOfFiles;
+		};
+
+		return walk(dirPath);
 	};
 
 	private getRealPaths = (paths: string[]) => {
@@ -94,14 +95,10 @@ export default class Collector {
 				);
 			}
 		} else {
-			let isDir: boolean, isFile: boolean;
-
 			// Check if CLI input is an actual path to a file or dir
-			try {
-				const fileArgStat = fs.statSync(cliInput);
-				isDir = fileArgStat.isDirectory();
-				isFile = fileArgStat.isFile();
-			} catch {}
+			const fileArgStat = fs.statSync(cliInput);
+			const isDir = fileArgStat.isDirectory();
+			const isFile = fileArgStat.isFile();
 
 			if (isFile) {
 				const filePath = fs.realpathSync(cliInput);
@@ -113,37 +110,32 @@ export default class Collector {
 				await this.runList(allFilesInDir);
 			} else if (root) {
 				// Regex match CLI input (requires root option to be set)
-				const allFiles = this.getAllFiles(root);
 
 				const chars = cliInput.split("");
 
 				// Generate regex string e.g.:
 				// input: 'foo' --> 'f.*o.*o.*'
 				const regexStr = new RegExp(
-					chars.reduce((prev, acc, i) => {
-						if (i === chars.length - 1) {
-							prev += acc;
-						} else {
-							prev += `${acc}.*`;
-						}
-						return prev;
-					}, "")
+					chars.reduce((prev, acc) => (prev += `${acc}.*`), "")
 				);
 
-				const matchingFiles = allFiles.filter((fileName) => {
-					const matches = fileName.match(regexStr);
-					if (matches && matches.length) {
-						return fileName;
-					} else {
-						throw new InputError(
-							`Found no files or directories matches for ${cliInput}`
-						);
-					}
+				const matchingFiles = this.getAllFiles(root).filter((file) => {
+					const ext = path.extname(file);
+					return file
+						.replace(root, "")
+						.replace(ext, "")
+						.match(regexStr);
 				});
 
-				this.logger.logCurrentlyRunning("files matching", cliInput);
+				if (matchingFiles.length) {
+					this.logger.logCurrentlyRunning("files matching", cliInput);
 
-				await this.runList(matchingFiles);
+					await this.runList(matchingFiles);
+				} else {
+					throw new InputError(
+						`No files or directories matching ${cliInput}`
+					);
+				}
 			} else {
 				throw new InputError(
 					`Could not find file or directory named ${cliInput}`
@@ -154,8 +146,7 @@ export default class Collector {
 
 	public matchExtensions = async (config: MatchExtensionsConfiguration) => {
 		const { match, root } = config;
-		const allFiles = this.getAllFiles(root);
-		const matchingPaths = allFiles.filter((fileName) => {
+		const matchingPaths = this.getAllFiles(root).filter((fileName) => {
 			if (match) {
 				for (const extension of match) {
 					if (fileName.endsWith(extension)) {
