@@ -6,4 +6,5 @@ export {
 	afterAll,
 	afterEach,
 	doOnce,
+	assert,
 } from "./quyz";

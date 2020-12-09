@@ -2,23 +2,15 @@ import Logger from "./logger";
 import { Configuration, Hooks } from "./types";
 
 export default class Hijacker {
-	log: Logger["log"];
+	logger: Logger;
 	clog: Console["log"];
-	pass: Logger["pass"];
-	fail: Logger["fail"];
-	logFn: Logger["logFn"];
-	colors: Logger["colors"];
 	volume: number;
 	symbols: boolean;
 	dev: boolean;
 
 	constructor(logger: Logger, config: Configuration) {
-		this.log = logger.log;
+		this.logger = logger;
 		this.clog = console.log;
-		this.pass = logger.pass;
-		this.fail = logger.fail;
-		this.logFn = logger.logFn;
-		this.colors = logger.colors;
 		this.volume = config.volume;
 		this.dev = config.dev === false ? false : true;
 	}
@@ -32,20 +24,21 @@ export default class Hijacker {
 			};
 		} else {
 			global.console.log = (...args: any[]) => {
-				this.logFn(...args);
+				this.logger.logFn(...args);
 			};
 		}
 	};
 
 	private releaseCaputredlogs = () => {
-		global.console.log = this.log;
+		const { log } = this.logger;
+		global.console.log = log;
 		const capturedLen = this.capturedLogs.length;
 		for (let i = 0; i < capturedLen; i++) {
 			const message = this.capturedLogs[i];
 			if (i === capturedLen - 1) {
-				this.log("└ ", message);
+				log(this.symbols ? `└ ${message}` : message);
 			} else {
-				this.log("│ ", message);
+				log(this.symbols ? `│ ${message}` : message);
 			}
 		}
 	};
@@ -53,8 +46,8 @@ export default class Hijacker {
 	// Release logs captured by hooks
 	public releaseHookLog = (hookName: keyof Hooks, testName?: string) => {
 		if (this.capturedLogs.length && this.volume >= 2) {
-			this.log(
-				this.colors.blue(
+			this.logger.log(
+				this.logger.colors.blue(
 					`${hookName}${testName ? ` (${testName})` : ""}:`
 				)
 			);
@@ -65,7 +58,7 @@ export default class Hijacker {
 
 	public releaseDoOnceLog = () => {
 		if (this.capturedLogs.length && this.volume >= 2) {
-			this.log(this.colors.magenta(`doOnce:`));
+			this.logger.log(this.logger.colors.magenta(`doOnce:`));
 			this.releaseCaputredlogs();
 		}
 		this.capturedLogs = [];

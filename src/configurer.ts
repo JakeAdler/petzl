@@ -8,12 +8,15 @@ import {
 import fs from "fs";
 import path from "path";
 import assert, { AssertionError } from "assert";
+import { registerProcessEventListeners } from "./utils";
 
 export default class Configurer {
 	public config: Configuration;
 
 	constructor(options?: Partial<Configuration>) {
 		this.config = this.defaultConfiguration;
+
+		registerProcessEventListeners(options ? options.dev : this.config.dev);
 
 		if (options) {
 			this.applyConfig(options);
@@ -45,7 +48,6 @@ export default class Configurer {
 		if (configExists) {
 			const userConfigFile = require(pathToConfig);
 			this.applyConfig(userConfigFile);
-		} else {
 		}
 	};
 
@@ -153,6 +155,16 @@ export default class Configurer {
 			}
 		} else if (isEntryPointConfig(collectorConfig)) {
 			// validate
+			const { root } = collectorConfig;
+			if (root) {
+				const exists = fs.existsSync(root);
+				if (!exists) {
+					throw new ConfigError(
+						"collector.root",
+						`path to root does not exist -> "${root}"`
+					);
+				}
+			}
 		} else if (isSequencerConfig(collectorConfig)) {
 			// validate sequencer config
 			//TODO: Validate 'ignore' option

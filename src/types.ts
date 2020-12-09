@@ -94,6 +94,10 @@ export interface DescribeStartAction extends GroupStartAction {
 	type: "describe-start";
 }
 
+export interface DescribeEndAction extends GroupEndAction {
+	type: "describe-end";
+}
+
 export interface FileStartAction extends GroupStartAction {
 	type: "file-start";
 }
@@ -102,9 +106,6 @@ export interface GroupEndAction extends Action {
 	type: "describe-end" | "file-end";
 }
 
-export interface DescribeEndAction extends GroupEndAction {
-	type: "describe-end";
-}
 
 export interface FileEndAction extends GroupEndAction {
 	type: "file-end";

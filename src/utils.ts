@@ -1,4 +1,5 @@
 import { performance } from "perf_hooks";
+import { devLogStore } from "./dev";
 import Logger from "./logger";
 import { ConfigError, Configuration, InputError, Title } from "./types";
 
@@ -16,7 +17,7 @@ export class Clock {
 
 	public calc = (): number => {
 		this.endTime = performance.now();
-		return Math.round(Math.abs(this.endTime - this.startTime));
+		return Number((this.endTime - this.startTime).toFixed(2));
 	};
 }
 
@@ -30,7 +31,22 @@ export const formatTitle = <T extends any[]>(
 	return title.trim();
 };
 
-export const registerProcessEventListeners = (logger: Logger) => {
+export const registerProcessEventListeners = (dev: boolean) => {
+	process.on("unhandledRejection", (err) => {
+		if (err instanceof Error) {
+			let message: string;
+			if (err instanceof InputError) {
+				message = "   " + err.message;
+			} else {
+				message = `${cleanStack(err)} \n   ${err.message}`;
+			}
+			const log = dev ? devLogStore.log : console.log;
+			const colors = createColors(!dev);
+			log(colors.red(`Failed (${err.name}):`));
+			log("  ", message);
+		}
+	});
+
 	process.on("uncaughtException", (err) => {
 		let message: string;
 		if (err instanceof InputError) {
@@ -38,8 +54,10 @@ export const registerProcessEventListeners = (logger: Logger) => {
 		} else {
 			message = `${cleanStack(err)} \n   ${err.message}`;
 		}
-		logger.logFn(logger.colors.red(`Failed (${err.name}):`));
-		logger.logFn("  ", message);
+		const log = dev ? devLogStore.log : console.log;
+		const colors = createColors(!dev);
+		log(colors.red(`Failed (${err.name}):`));
+		log("  ", message);
 	});
 };
 

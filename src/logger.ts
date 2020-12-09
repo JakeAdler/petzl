@@ -92,6 +92,7 @@ export default class Logger {
 	logGroupTitle = (title: string) => {
 		if (this.volume >= 3) {
 			this.log(this.colors.bold(this.colors.underline(title)));
+			this.addPadding();
 		}
 	};
 

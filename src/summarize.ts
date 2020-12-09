@@ -23,10 +23,10 @@ export default class Summarizer {
 			colors.red(colors.bold(`Failed `)),
 			colors.red(context.failed.toString()),
 		];
-		const runtimeFormateted = (context.testRuntime / 1000).toFixed(1);
+		const runtimeFormateted = context.testRuntime.toFixed(2);
 		const runtime = [
 			colors.blue(colors.bold(`Runtime`)),
-			colors.blue(`${runtimeFormateted}s`),
+			colors.blue(`${runtimeFormateted}ms`),
 		];
 
 		const endReport: string[][] = [passed, failed, runtime];
@@ -36,11 +36,13 @@ export default class Summarizer {
 		}
 	};
 
-	updateSummary = (context: Context, queue: Action[]) => {
+	updateSummary = (context: Context, queue: Action[], clear = true) => {
 		if (
 			!this.config.dev &&
 			typeof process.stdout.moveCursor === "function"
 		) {
+			if (clear) this.clearSummary();
+
 			const numTests = queue.filter((action: Action) => {
 				if (isItAction(action)) {
 					return action;
@@ -106,7 +108,7 @@ export default class Summarizer {
 				this.logger.subtractPadding();
 			}
 		} else {
-			log("\n")
+			log("\n");
 		}
 		this.logContext(context);
 	};

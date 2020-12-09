@@ -1,9 +1,10 @@
 import Configurer from "./configurer";
 import Collector from "./collector";
 import Runner from "./runner";
-import Dev, { devLogStore } from "./dev";
+import Dev from "./dev";
 import { formatTitle } from "./utils";
 import { AnyVoidCB, Configuration, Title, TestCB, AnyCB } from "./types";
+import NodeAssert from "assert";
 
 class Quyz {
 	private runner: Runner;
@@ -19,6 +20,8 @@ class Quyz {
 			this.dev = new Dev(this.runner, this.collector);
 		}
 	}
+
+	public assert = NodeAssert.strict;
 
 	public beforeEach = (cb: AnyVoidCB) => {
 		this.runner.pushHookAction("beforeEach", cb);
@@ -84,6 +87,7 @@ const {
 	beforeEach,
 	afterAll,
 	afterEach,
+	assert,
 	doOnce,
 	collector,
 } = quyz;
@@ -95,6 +99,7 @@ export {
 	beforeEach,
 	afterAll,
 	afterEach,
+	assert,
 	doOnce,
 	collector,
 	Quyz,

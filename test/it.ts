@@ -1,6 +1,5 @@
-import { it, beforeAll, afterAll, describe } from "../dist";
+import { it, beforeAll, afterAll, describe, assert } from "../dist";
 import { quyz } from "../test-utils/quyz";
-import assert from "assert";
 import {
 	isFileEndAction,
 	isFileStartAction,

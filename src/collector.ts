@@ -13,7 +13,6 @@ import {
 	SequencerConfiguration,
 	InputError,
 } from "./types";
-import { registerProcessEventListeners } from "./utils";
 
 export default class Collector {
 	private runner: Runner;
@@ -24,7 +23,6 @@ export default class Collector {
 		this.runner = runner;
 		this.config = configurer.config;
 		this.logger = new Logger(configurer.config);
-		registerProcessEventListeners(this.logger);
 	}
 
 	// Recursively get all files in dirPath
