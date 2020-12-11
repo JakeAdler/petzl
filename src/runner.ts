@@ -9,11 +9,9 @@ import {
 	DescribeStartAction,
 	isDescribeStartAction,
 	isDescribeEndAction,
-	isHookAction,
 	isItAction,
 	isDoOnceAction,
 	Hooks,
-	SetHookAction,
 	AnyCB,
 	Configuration,
 	Context,
@@ -150,7 +148,7 @@ export default class Runner {
 		const { queue } = this;
 		this.queue = [];
 
-		const walk = async () => {
+		const walk = async (queue: Action[]) => {
 			for (let i = 0; i < queue.length; i++) {
 				const action = queue[i];
 
@@ -163,32 +161,27 @@ export default class Runner {
 			}
 		};
 
-		await walk();
+		await walk(queue);
 	};
-
-	private totalDescribes = 0;
-	private describesLeft = 0;
 
 	private processQueue = async () => {
 		const doesContainDescribes = () => {
 			return this.queue.filter(isDescribeAction).length;
 		};
 
-		this.totalDescribes = doesContainDescribes();
+		let totalDescribes = doesContainDescribes(),
+			describesLeft = 0;
 
-		if (this.totalDescribes) {
-			this.summarizer.updateResolveLogs(0, this.totalDescribes, false);
-		}
+		totalDescribes &&
+			this.summarizer.updateResolveLogs(0, totalDescribes, false);
 
 		while (doesContainDescribes()) {
-			this.describesLeft += 1;
-			this.summarizer.updateResolveLogs(
-				this.describesLeft,
-				this.totalDescribes
-			);
+
+			describesLeft += 1;
+			this.summarizer.updateResolveLogs(describesLeft, totalDescribes);
 			await this.resolveDescribes();
 		}
-		if (this.totalDescribes) this.summarizer.clearResolveLogs();
+		totalDescribes && this.summarizer.clearResolveLogs();
 	};
 
 	private useCachedHooks = () => {

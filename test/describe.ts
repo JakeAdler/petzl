@@ -7,8 +7,7 @@ import {
 	isDescribeStartAction,
 	isItAction,
 } from "../dist/types";
-
-const sleep = () => new Promise((resolve) => setTimeout(resolve, 1000));
+import { inspect } from "util";
 
 describe("describe suite", () => {
 	beforeAll(async () => {
@@ -37,22 +36,22 @@ describe("describe suite", () => {
 		);
 	};
 
-	it("first group should contain 1 test, and 2 nested groups", () => {
-		const firstGroup = getGroup(0, 2);
+	it("should contain 1 test, and 3 nested groups", () => {
+		const queue = quyz.dev.getQueue();
+		const startActions = getStartActions();
+		const endActions = getEndActions();
+		const itActions = queue.filter(isItAction);
 
-		const startActions = firstGroup.filter(isDescribeStartAction);
-		const endActions = firstGroup.filter(isDescribeEndAction);
-		const itActions = firstGroup.filter(isItAction);
-
-		assert.strictEqual(startActions.length, 3);
+		console.log(inspect(quyz.dev.getQueue()));
+		assert.strictEqual(startActions.length, 4);
 
 		assert(startActions[0].title === "first group");
 		assert(startActions[1].title === "nested group");
 		assert(startActions[2].title === "with hooks");
 
-		assert.strictEqual(endActions.length, 3);
+		assert.strictEqual(endActions.length, 4);
 
-		assert.strictEqual(itActions.length, 3);
+		assert.strictEqual(itActions.length, 4);
 	});
 
 	it("nested group should contain 1 test", () => {
@@ -76,7 +75,19 @@ describe("describe suite", () => {
 		}
 	});
 
-	describe("Title", () => {
-		it("haha", () => {});
+	it("async tests should be generated", () => {
+		const asyncGroup = getGroup(3, 2);
+
+		assert.strictEqual(asyncGroup[0].type, "describe-start");
+		assert.strictEqual(asyncGroup[1].type, "it");
+		assert.strictEqual(asyncGroup[2].type, "describe-end");
+
+		assert.strictEqual(asyncGroup[0]["title"], "async group title");
+		assert.strictEqual(
+			asyncGroup[1]["title"],
+			"inside async generated group"
+		);
 	});
+
+
 });
