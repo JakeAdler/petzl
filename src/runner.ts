@@ -145,43 +145,23 @@ export default class Runner {
 	// Private helpers
 
 	private resolveDescribes = async () => {
-		const { queue } = this;
-		this.queue = [];
-
 		const walk = async (queue: Action[]) => {
-			for (let i = 0; i < queue.length; i++) {
-				const action = queue[i];
-
+			this.queue = [];
+			for (const action of queue) {
 				if (isDescribeAction(action)) {
-					const { cb, args } = action;
-					await cb(...args);
+					await action.cb(...action.args);
+					await walk(this.queue);
 				} else {
 					this.pushAction(action);
 				}
 			}
 		};
 
-		await walk(queue);
+		await walk(this.queue);
 	};
 
 	private processQueue = async () => {
-		const doesContainDescribes = () => {
-			return this.queue.filter(isDescribeAction).length;
-		};
-
-		let totalDescribes = doesContainDescribes(),
-			describesLeft = 0;
-
-		totalDescribes &&
-			this.summarizer.updateResolveLogs(0, totalDescribes, false);
-
-		while (doesContainDescribes()) {
-
-			describesLeft += 1;
-			this.summarizer.updateResolveLogs(describesLeft, totalDescribes);
-			await this.resolveDescribes();
-		}
-		totalDescribes && this.summarizer.clearResolveLogs();
+		await this.resolveDescribes();
 	};
 
 	private useCachedHooks = () => {

@@ -3,7 +3,8 @@ module.exports = {
 	require: ["ts-node/register"],
 	printFileNames: false,
 	collector: {
-		use: "entryPoint",
+		use: "matchExtensions",
 		root: "test",
+		match: [".ts"],
 	},
 };

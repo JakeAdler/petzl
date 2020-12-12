@@ -84,8 +84,9 @@ export default class Configurer {
 							expected: "array",
 							actual: typeof val,
 						});
+					} else if (type !== "array") {
+						assert.strictEqual(typeof val, type);
 					}
-					assert.strictEqual(typeof val, type);
 				}
 			} catch (err) {
 				throw new ConfigError(
@@ -103,7 +104,6 @@ export default class Configurer {
 				);
 			}
 		};
-
 
 		// require
 		config.require &&
@@ -129,6 +129,8 @@ export default class Configurer {
 				"is required to use the 'matchExtensions' collector";
 
 			isRequired("collector.root", collectorConfig.root, requiredMessage);
+
+			isType("collector.match", collectorConfig.match, "array");
 
 			isRequired(
 				"collector.match",

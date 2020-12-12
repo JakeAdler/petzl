@@ -7,7 +7,8 @@ import {
 	isDescribeStartAction,
 	isItAction,
 } from "../dist/types";
-import { inspect } from "util";
+
+const slp = () => new Promise((resolve) => setTimeout(resolve, 1000));
 
 describe("describe suite", () => {
 	beforeAll(async () => {
@@ -42,7 +43,6 @@ describe("describe suite", () => {
 		const endActions = getEndActions();
 		const itActions = queue.filter(isItAction);
 
-		console.log(inspect(quyz.dev.getQueue()));
 		assert.strictEqual(startActions.length, 4);
 
 		assert(startActions[0].title === "first group");
@@ -89,5 +89,11 @@ describe("describe suite", () => {
 		);
 	});
 
-
+	describe("nested", async () => {
+		await slp();
+		it("lol", () => {});
+		describe("super nested", async () => {
+			it("lol 2", () => {});
+		});
+	});
 });

@@ -32,13 +32,13 @@ export default class Collector {
 		const walk = (dir: string, arrayOfFiles?: string[]) => {
 			arrayOfFiles = arrayOfFiles || [];
 
-			files.forEach((file) => {
+			for (const file of files) {
 				if (fs.statSync(dir + "/" + file).isDirectory()) {
 					arrayOfFiles = walk(dir + "/" + file, arrayOfFiles);
 				} else {
 					arrayOfFiles.push(path.join(dirPath, "/", file));
 				}
-			});
+			}
 
 			return arrayOfFiles;
 		};
@@ -147,14 +147,10 @@ export default class Collector {
 	public matchExtensions = async (config: MatchExtensionsConfiguration) => {
 		const { match, root } = config;
 		const matchingPaths = this.getAllFiles(root).filter((fileName) => {
-			if (match) {
-				for (const extension of match) {
-					if (fileName.endsWith(extension)) {
-						return fileName;
-					}
+			for (const extension of match) {
+				if (fileName.endsWith(extension)) {
+					return fileName;
 				}
-			} else {
-				return fileName;
 			}
 		});
 
