@@ -3,6 +3,7 @@ import Hijacker from "./hijacker";
 import Configurer from "./configurer";
 import { Clock } from "./utils";
 import Summarizer from "./summarize";
+import { performance } from "perf_hooks";
 import {
 	Action,
 	ItAction,
@@ -160,7 +161,7 @@ export default class Runner {
 		await walk(this.queue);
 	};
 
-	private processQueue = async () => {
+	public processQueue = async () => {
 		await this.resolveDescribes();
 	};
 

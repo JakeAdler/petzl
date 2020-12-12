@@ -1,10 +1,9 @@
 module.exports = {
-	// volume: 3,
 	require: ["ts-node/register"],
+	bubbleHooks: true,
 	printFileNames: false,
 	collector: {
-		use: "matchExtensions",
+		use: "entryPoint",
 		root: "test",
-		match: [".ts"],
 	},
 };

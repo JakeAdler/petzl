@@ -7,7 +7,6 @@ import {
 } from "./types";
 import fs from "fs";
 import path from "path";
-import assert, { AssertionError } from "assert";
 import { registerProcessEventListeners } from "./utils";
 
 export default class Configurer {
@@ -73,82 +72,92 @@ export default class Configurer {
 	public validateConfig = (config: Partial<Configuration>) => {
 		if (!config) return;
 
-		type Type = "string" | "boolean" | "number" | "array";
+		type Type = "string" | "boolean" | "number";
 
 		const isType = (optionName: string, val: any, type: Type) => {
-			try {
-				if (val) {
-					if (type === "array" && !Array.isArray(val)) {
-						throw new AssertionError({
-							message: "",
-							expected: "array",
-							actual: typeof val,
-						});
-					} else if (type !== "array") {
-						assert.strictEqual(typeof val, type);
-					}
-				}
-			} catch (err) {
+			if (val && typeof val !== type) {
 				throw new ConfigError(
 					optionName,
-					`Expected option to be of type ${type} but got '${err.actual}'`
+					`Expected option to be of type ${type} but got '${typeof val}'`
 				);
+			}
+		};
+
+		const isArrayOf = (name: string, val: any[], type: Type) => {
+			const message = (index?: number) => {
+				return `Expected option ${name} to be type of ${
+					index ? "array" : type
+				} but got type of ${typeof val}`;
+			};
+			if (val === undefined) return;
+			if (!Array.isArray(val)) {
+				throw new ConfigError(name, message());
+			} else {
+				for (let i = 0; i < val.length; i++) {
+					if (typeof val[i] !== type) {
+						throw new ConfigError(name, message(i));
+					}
+				}
 			}
 		};
 
 		const isRequired = (optionName: string, val: any, message?: string) => {
 			if (val === undefined || val === null) {
-				throw new ConfigError(
-					optionName,
-					message ? message : "option is required"
-				);
+				message = message || "option is required";
+				throw new ConfigError(optionName, message);
 			}
 		};
 
-		// require
-		config.require &&
-			config.require.forEach((req) => {
-				isType("require", req, "string");
-			});
+		const mustExist = (
+			optionName: string,
+			path: string,
+			message?: string
+		) => {
+			message = message || "Path must exist";
+			const exists = fs.existsSync(path);
+			if (!exists) throw new ConfigError(optionName, message);
+		};
 
-		// colors
+		isArrayOf("require", config.require, "string");
+
 		isType("colors", config.colors, "boolean");
 
-		// volume
-		isType("volume", config.colors, "number");
+		isType("volume", config.volume, "number");
 
-		// bubbleHooks
 		isType("bubbleHooks", config.bubbleHooks, "boolean");
 
-		// collector
-		const collectorConfig: any = config.collector ? config.collector : {};
+		isType("printFileNames", config.printFileNames, "boolean");
 
-		if (isMatchExtensionsConfig(collectorConfig)) {
+		isType("dev", config.dev, "boolean");
+
+		const { collector } = config;
+
+		if (!collector) return;
+
+		if (isMatchExtensionsConfig(collector)) {
 			// validate matchExtensions config
 			const requiredMessage =
 				"is required to use the 'matchExtensions' collector";
 
-			isRequired("collector.root", collectorConfig.root, requiredMessage);
+			isRequired("collector.root", collector.root, requiredMessage);
 
-			isType("collector.match", collectorConfig.match, "array");
+			isArrayOf("collector.match", collector.match, "string");
 
-			isRequired(
-				"collector.match",
-				collectorConfig.match,
-				requiredMessage
+			isRequired("collector.match", collector.match, requiredMessage);
+
+			isArrayOf("collector.match", collector.match, "string");
+
+			mustExist(
+				"collector.root",
+				collector.root,
+				`Root path ${collector.root} does not exist`
 			);
 
-			isType("collector.match", collectorConfig.match, "array");
+			for (let i = 0; i < collector.match.length; i++) {
+				const matcher = collector.match[i];
 
-			const rootExists = fs.existsSync(collectorConfig.root);
-			if (!rootExists) {
-				throw new ConfigError(
-					"collector.root",
-					`directory ${collectorConfig.root} does not exist`
-				);
-			}
+				isType(`collector.match[${i}]`, matcher, "string");
 
-			for (const matcher of collectorConfig.match) {
 				if (matcher.charAt(0) !== ".") {
 					throw new ConfigError(
 						"collector.match",
@@ -156,45 +165,38 @@ export default class Configurer {
 					);
 				}
 			}
-		} else if (isEntryPointConfig(collectorConfig)) {
-			// validate
-			const { root } = collectorConfig;
-			if (root) {
-				const exists = fs.existsSync(root);
-				if (!exists) {
-					throw new ConfigError(
-						"collector.root",
-						`path to root does not exist -> "${root}"`
-					);
-				}
+		} else if (isEntryPointConfig(collector)) {
+			isType("collector.root", collector.root, "string");
+
+			if (collector.root) {
+				mustExist(
+					"collector.root",
+					collector.root,
+					`path to root does not exist -> "${collector.root}"`
+				);
 			}
-		} else if (isSequencerConfig(collectorConfig)) {
-			// validate sequencer config
+		} else if (isSequencerConfig(collector)) {
 			//TODO: Validate 'ignore' option
 			isRequired(
 				"collector.sequence",
-				collectorConfig.sequence,
+				collector.sequence,
 				"is required to use the 'sequencer' collector"
 			);
 
-			isType("collector.sequence", collectorConfig.sequence, "array");
+			isArrayOf("collector.sequence", collector.sequence, "string");
 
-			collectorConfig.sequence.forEach((fileOrDir) => {
-				const exists = fs.existsSync(fileOrDir);
-				if (!exists) {
-					throw new ConfigError(
-						"collector.include",
-						`path in sequence does not exist -> "${fileOrDir}"`
-					);
-				}
-			});
-		} else {
-			if (config.collector) {
-				throw new ConfigError(
-					"runner",
-					`Unknown collector, check configuration `
+			for (const fileOrDir of collector.sequence) {
+				mustExist(
+					"collector.include",
+					fileOrDir,
+					`Path in sequence does not exist: ${fileOrDir}`
 				);
 			}
+		} else if (collector.use) {
+			throw new ConfigError(
+				"collector",
+				`Unknown collector '${config.collector.use}', check configuration `
+			);
 		}
 	};
 }

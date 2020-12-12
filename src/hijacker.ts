@@ -10,7 +10,7 @@ export default class Hijacker {
 
 	constructor(logger: Logger, config: Configuration) {
 		this.logger = logger;
-		this.clog = console.log;
+		this.clog = global.console.log;
 		this.volume = config.volume;
 		this.dev = config.dev === false ? false : true;
 	}

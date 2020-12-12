@@ -13,6 +13,7 @@ class Quyz {
 	public dev: Dev;
 
 	constructor(configuration?: Partial<Configuration>) {
+		process.env["NODE_ENV"] = "test";
 		this.configurer = new Configurer(configuration);
 		this.runner = new Runner(this.configurer);
 		this.collector = new Collector(this.runner, this.configurer);

@@ -27,36 +27,26 @@ export default class Collector {
 
 	// Recursively get all files in dirPath
 	private getAllFiles = (dirPath: string) => {
-		const files = fs.readdirSync(dirPath);
+		const walk = (dir: string, allFiles?: string[]): string[] => {
+			allFiles = allFiles || [];
+			const dirFiles = fs.readdirSync(dir);
 
-		const walk = (dir: string, arrayOfFiles?: string[]) => {
-			arrayOfFiles = arrayOfFiles || [];
-
-			for (const file of files) {
+			for (const file of dirFiles) {
 				if (fs.statSync(dir + "/" + file).isDirectory()) {
-					arrayOfFiles = walk(dir + "/" + file, arrayOfFiles);
+					return walk(dir + "/" + file, allFiles);
 				} else {
-					arrayOfFiles.push(path.join(dirPath, "/", file));
+					allFiles.push(path.join(dir, "/", file));
 				}
 			}
 
-			return arrayOfFiles;
+			return allFiles;
 		};
 
 		return walk(dirPath);
 	};
 
 	private getRealPaths = (paths: string[]) => {
-		return paths.map((file) => {
-			const realPath = fs.realpathSync(file);
-			if (!file) {
-				throw new Error(
-					`Could not create path for ${file}. Check configuration.`
-				);
-			} else {
-				return realPath;
-			}
-		});
+		return paths.map((file) => fs.realpathSync(file));
 	};
 
 	private runList = async (paths: string[]) => {
@@ -83,78 +73,77 @@ export default class Collector {
 		const { root } = config;
 
 		const cliInput = process.argv[2];
+
 		if (!cliInput) {
 			// If root option is set and no CLI input, just run root
 			if (root) {
-				const allFiles = this.getAllFiles(root);
-				this.runList(allFiles);
-				return;
-			} else {
-				throw new InputError(
-					"Must provide 'runner.root' option in config file, or the path to a file or directory as a command line argument "
-				);
+				return this.runList(this.getAllFiles(root));
 			}
+
+			throw new InputError(
+				"Must provide 'runner.root' option in config file, or the path to a file or directory as a command line argument "
+			);
 		} else {
 			// Check if CLI input is an actual path to a file or dir
-			const fileArgStat = fs.statSync(cliInput);
+			const realPath = fs.realpathSync(cliInput);
+			const fileArgStat = fs.statSync(realPath);
+
 			const isDir = fileArgStat.isDirectory();
 			const isFile = fileArgStat.isFile();
 
 			if (isFile) {
 				const filePath = fs.realpathSync(cliInput);
 				this.logger.logCurrentlyRunning("file", cliInput);
-				await this.runList([filePath]);
+				return await this.runList([filePath]);
 			} else if (isDir) {
 				const allFilesInDir = this.getAllFiles(cliInput);
 				this.logger.logCurrentlyRunning("directory", cliInput);
-				await this.runList(allFilesInDir);
+				return await this.runList(allFilesInDir);
 			} else if (root) {
 				// Regex match CLI input (requires root option to be set)
-
-				const chars = cliInput.split("");
 
 				// Generate regex string e.g.:
 				// input: 'foo' --> 'f.*o.*o.*'
 				const regexStr = new RegExp(
-					chars.reduce((prev, acc) => (prev += `${acc}.*`), "")
+					cliInput
+						.split("")
+						.reduce((prev, acc) => (prev += `${acc}.*`), "")
 				);
 
 				const matchingFiles = this.getAllFiles(root).filter((file) => {
-					const ext = path.extname(file);
 					return file
 						.replace(root, "")
-						.replace(ext, "")
+						.replace(path.extname(file), "")
 						.match(regexStr);
 				});
 
-				if (matchingFiles.length) {
+				if (matchingFiles) {
 					this.logger.logCurrentlyRunning("files matching", cliInput);
-
-					await this.runList(matchingFiles);
-				} else {
-					throw new InputError(
-						`No files or directories matching ${cliInput}`
-					);
+					return await this.runList(matchingFiles);
 				}
-			} else {
+
 				throw new InputError(
-					`Could not find file or directory named ${cliInput}`
+					`No files or directories matching ${cliInput}`
 				);
 			}
+
+			throw new InputError(
+				`Could not find file or directory named ${cliInput}`
+			);
 		}
 	};
 
 	public matchExtensions = async (config: MatchExtensionsConfiguration) => {
 		const { match, root } = config;
 		const matchingPaths = this.getAllFiles(root).filter((fileName) => {
-			for (const extension of match) {
-				if (fileName.endsWith(extension)) {
-					return fileName;
-				}
-			}
+			return match.every((ext) => fileName.endsWith(ext));
 		});
 
-		await this.runList(matchingPaths);
+		if (matchingPaths) {
+			return await this.runList(matchingPaths);
+		}
+
+		throw new InputError(`No files matching extension ${match}`);
 	};
 
 	public sequencer = async (config: SequencerConfiguration) => {

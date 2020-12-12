@@ -11,7 +11,7 @@ export type MacroCB<T extends any[]> = (...macroArgs: T) => AnyVoid;
 
 export type LogFn = (...args: any[]) => void;
 
-export type Title<T extends any[]> = string | ((...args: Partial<T>) => string);
+export type Title<T extends any[]> = string | ((...args: T) => string);
 
 export interface Hooks {
 	beforeAll: AnyVoidCB;
@@ -213,17 +213,17 @@ export const isGroupEndAction = (action: Action): action is GroupEndAction => {
 export const isEntryPointConfig = (
 	config: CollectorConfiguration
 ): config is EntryPointConfiguration => {
-	return config.use === "entryPoint";
+	return config && config.use === "entryPoint";
 };
 
 export const isMatchExtensionsConfig = (
 	config: CollectorConfiguration
 ): config is MatchExtensionsConfiguration => {
-	return config.use === "matchExtensions";
+	return config && config.use === "matchExtensions";
 };
 
 export const isSequencerConfig = (
 	config: CollectorConfiguration
 ): config is SequencerConfiguration => {
-	return config.use === "sequencer";
+	return config && config.use === "sequencer";
 };

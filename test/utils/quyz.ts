@@ -1,4 +1,4 @@
-import { Quyz } from "../dist/quyz";
+import { Quyz } from "../../dist/quyz";
 
 const quyz = new Quyz({
 	dev: true,

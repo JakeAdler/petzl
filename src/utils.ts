@@ -32,8 +32,25 @@ export const formatTitle = <T extends any[]>(
 };
 
 export const registerProcessEventListeners = (dev: boolean) => {
-	process.on("unhandledRejection", (err) => {
-		if (err instanceof Error) {
+	const devEnv = process.env["NODE_ENV"] === "test";
+
+	if (!devEnv) {
+		process.on("unhandledRejection", (err) => {
+			if (err instanceof Error) {
+				let message: string;
+				if (err instanceof InputError) {
+					message = "   " + err.message;
+				} else {
+					message = `${err.stack} \n   ${err.message}`;
+				}
+				const log = dev ? devLogStore.log : console.log;
+				const colors = createColors(!dev);
+				log(colors.red(`Failed (${err.name}):`));
+				log("  ", message);
+			}
+		});
+
+		process.on("uncaughtException", (err) => {
 			let message: string;
 			if (err instanceof InputError) {
 				message = "   " + err.message;
@@ -44,21 +61,8 @@ export const registerProcessEventListeners = (dev: boolean) => {
 			const colors = createColors(!dev);
 			log(colors.red(`Failed (${err.name}):`));
 			log("  ", message);
-		}
-	});
-
-	process.on("uncaughtException", (err) => {
-		let message: string;
-		if (err instanceof InputError) {
-			message = "   " + err.message;
-		} else {
-			message = `${cleanStack(err)} \n   ${err.message}`;
-		}
-		const log = dev ? devLogStore.log : console.log;
-		const colors = createColors(!dev);
-		log(colors.red(`Failed (${err.name}):`));
-		log("  ", message);
-	});
+		});
+	}
 };
 
 export const cleanStack = (err: Error) => {
