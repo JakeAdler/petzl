@@ -33,7 +33,7 @@ export default class Collector {
 
 			for (const file of dirFiles) {
 				if (fs.statSync(dir + "/" + file).isDirectory()) {
-					return walk(dir + "/" + file, allFiles);
+					walk(dir + "/" + file, allFiles);
 				} else {
 					allFiles.push(path.join(dir, "/", file));
 				}

@@ -32,9 +32,7 @@ export const formatTitle = <T extends any[]>(
 };
 
 export const registerProcessEventListeners = (dev: boolean) => {
-	const devEnv = process.env["NODE_ENV"] === "test";
-
-	if (!devEnv) {
+	if (!dev) {
 		process.on("unhandledRejection", (err) => {
 			if (err instanceof Error) {
 				let message: string;

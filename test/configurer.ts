@@ -33,6 +33,7 @@ describe("configurer", () => {
 					dev: false,
 					require: [],
 				},
+				undefined,
 			];
 
 			for (const config of passingConfigs) {
@@ -75,6 +76,12 @@ describe("configurer", () => {
 				},
 				{
 					require: ["foo"],
+				},
+				{
+					require: ["ts-node", "foo"],
+				},
+				{
+					require: [{}],
 				},
 			];
 			for (const config of failingConfigs) {
@@ -119,6 +126,12 @@ describe("configurer", () => {
 				},
 				{
 					use: "matchExtensions",
+					root: "tmp_test_root",
+					// fails because needs to start with '.'
+					match: ["ts"],
+				},
+				{
+					use: "matchExtensions",
 					root: "test",
 					// fails because needs to be array
 					match: ".ts",
@@ -129,6 +142,9 @@ describe("configurer", () => {
 				{
 					use: "sequencer",
 					sequence: "",
+				},
+				{
+					use: "foo",
 				},
 			];
 

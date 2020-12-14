@@ -1,3 +1,4 @@
+import { inspect } from "util";
 import Logger from "./logger";
 import { Configuration, Hooks } from "./types";
 
@@ -10,7 +11,7 @@ export default class Hijacker {
 
 	constructor(logger: Logger, config: Configuration) {
 		this.logger = logger;
-		this.clog = global.console.log;
+		this.clog = Object.freeze(console.log);
 		this.volume = config.volume;
 		this.dev = config.dev === false ? false : true;
 	}
@@ -22,25 +23,23 @@ export default class Hijacker {
 			global.console.log = (...args: any[]) => {
 				this.capturedLogs.push(...args);
 			};
-		} else {
-			global.console.log = (...args: any[]) => {
-				this.logger.logFn(...args);
-			};
 		}
 	};
 
 	private releaseCaputredlogs = () => {
 		const { log } = this.logger;
-		global.console.log = log;
 		const capturedLen = this.capturedLogs.length;
 		for (let i = 0; i < capturedLen; i++) {
 			const message = this.capturedLogs[i];
+			const formatted =
+				typeof message === "string" ? message : inspect(message);
 			if (i === capturedLen - 1) {
-				log(this.symbols ? `└ ${message}` : message);
+				log(`└ ${formatted}`);
 			} else {
-				log(this.symbols ? `│ ${message}` : message);
+				log(`│ ${formatted}`);
 			}
 		}
+		this.resetGlobalLog();
 	};
 
 	// Release logs captured by hooks
@@ -78,7 +77,7 @@ export default class Hijacker {
 	};
 
 	public resetGlobalLog = () => {
-		global.console.log = this.clog;
+		if (!this.dev) global.console.log = this.clog;
 		this.capturedLogs = [];
 	};
 }

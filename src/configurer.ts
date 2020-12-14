@@ -15,13 +15,13 @@ export default class Configurer {
 	constructor(options?: Partial<Configuration>) {
 		this.config = this.defaultConfiguration;
 
-		registerProcessEventListeners(options ? options.dev : this.config.dev);
-
 		if (options) {
 			this.applyConfig(options);
 		} else {
 			this.findConfig();
 		}
+
+		registerProcessEventListeners(this.config.dev);
 	}
 
 	private defaultConfiguration: Configuration = {
@@ -57,21 +57,15 @@ export default class Configurer {
 				// synchronously require modules
 				require(requiredModule);
 			} catch (err) {
-				if (err.code && err.code === "MODULE_NOT_FOUND") {
-					throw new ConfigError(
-						"require",
-						`Could not find module ${requiredModule}`
-					);
-				} else {
-					throw err;
-				}
+				throw new ConfigError(
+					"require",
+					`Could not find module ${requiredModule}`
+				);
 			}
 		}
 	};
 
 	public validateConfig = (config: Partial<Configuration>) => {
-		if (!config) return;
-
 		type Type = "string" | "boolean" | "number";
 
 		const isType = (optionName: string, val: any, type: Type) => {

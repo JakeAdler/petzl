@@ -3,7 +3,6 @@ import Hijacker from "./hijacker";
 import Configurer from "./configurer";
 import { Clock } from "./utils";
 import Summarizer from "./summarize";
-import { performance } from "perf_hooks";
 import {
 	Action,
 	ItAction,
@@ -98,20 +97,10 @@ export default class Runner {
 	};
 
 	public run = async () => {
-		const {
-			dev,
-			context,
-			handleItAction,
-			handleGroupStartAction,
-			handleGroupEndAction,
-			handleDoOnceAction,
-			summarizer,
-		} = this;
-
 		await this.processQueue();
 
-		if (!dev) {
-			summarizer.updateSummary(context, this.queue, false);
+		if (!this.dev) {
+			this.summarizer.updateSummary(this.context, this.queue, false);
 		}
 
 		try {
@@ -119,27 +108,27 @@ export default class Runner {
 				const action = this.queue[i];
 
 				if (isItAction(action)) {
-					await handleItAction(action);
+					await this.handleItAction(action);
 				}
 
 				if (isDoOnceAction(action)) {
-					await handleDoOnceAction(action);
+					await this.handleDoOnceAction(action);
 				}
 
 				if (isGroupStartAction(action)) {
-					await handleGroupStartAction(action);
+					await this.handleGroupStartAction(action);
 				}
 
 				if (isGroupEndAction(action)) {
-					await handleGroupEndAction(action);
+					await this.handleGroupEndAction(action);
 				}
 			}
 		} finally {
-			if (!dev) {
-				summarizer.clearSummary();
+			if (!this.dev) {
+				this.summarizer.clearSummary();
 			}
 			this.hijacker.resetGlobalLog();
-			summarizer.endReport(context);
+			this.summarizer.endReport(this.context);
 		}
 	};
 
@@ -238,13 +227,11 @@ export default class Runner {
 		cb,
 		args,
 	}: ItAction<T>): Promise<void> => {
-		const { context, logger, hijacker, runHook, queue } = this;
+		this.summarizer.updateSummary(this.context, this.queue);
 
-		this.summarizer.updateSummary(context, queue);
+		await this.runHook("beforeEach", title);
 
-		await runHook("beforeEach", title);
-
-		hijacker.hijackConsoleLogs();
+		this.hijacker.hijackConsoleLogs();
 
 		let didPass: boolean, runtime: number;
 
@@ -256,12 +243,12 @@ export default class Runner {
 			// Pass
 			runtime = clock.calc();
 
-			logger.pass(title, runtime);
+			this.logger.pass(title, runtime);
 
-			context.passed += 1;
+			this.context.passed += 1;
 
 			if (runtime > 0) {
-				context.testRuntime += runtime;
+				this.context.testRuntime += runtime;
 			}
 			didPass = true;
 		} catch (err) {
@@ -269,18 +256,18 @@ export default class Runner {
 			didPass = false;
 			runtime = clock.calc();
 
-			logger.fail(title, runtime);
+			this.logger.fail(title, runtime);
 
-			context.failed += 1;
+			this.context.failed += 1;
 
-			context.errors.push([err, title]);
+			this.context.errors.push([err, title]);
 
 			if (runtime > 0) {
-				context.testRuntime += runtime;
+				this.context.testRuntime += runtime;
 			}
 		} finally {
-			hijacker.releaseTestLog(title, runtime, didPass);
-			await runHook("afterEach", title);
+			this.hijacker.releaseTestLog(title, runtime, didPass);
+			await this.runHook("afterEach", title);
 		}
 	};
 }
