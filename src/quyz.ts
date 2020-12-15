@@ -73,7 +73,7 @@ class Quyz {
 
 		this.runner.pushAction({
 			type: "describe",
-			cb: cb.bind(this),
+			cb,
 			args,
 		});
 

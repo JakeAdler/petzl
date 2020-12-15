@@ -80,9 +80,10 @@ export default class Runner {
 
 	public reset = () => {
 		if (this.dev) {
-			this.queue.filter(isFileStartAction).forEach((action) => {
-				delete require.cache[action.title];
-			});
+			const fileActions = this.queue.filter(isFileStartAction);
+			for (const file of fileActions) {
+				delete require.cache[file.title];
+			}
 			this.queue = [];
 			this.context = {
 				passed: 0,
@@ -129,6 +130,7 @@ export default class Runner {
 			}
 			this.hijacker.resetGlobalLog();
 			this.summarizer.endReport(this.context);
+			debugger;
 		}
 	};
 
@@ -139,8 +141,13 @@ export default class Runner {
 			this.queue = [];
 			for (const action of queue) {
 				if (isDescribeAction(action)) {
-					await action.cb(...action.args);
-					await walk(this.queue);
+					try {
+						await action.cb(...action.args);
+					} catch (err) {
+						//TODO: push to errors -- attach title to describe action
+					} finally {
+						await walk(this.queue);
+					}
 				} else {
 					this.pushAction(action);
 				}

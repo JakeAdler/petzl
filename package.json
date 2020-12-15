@@ -1,6 +1,6 @@
 {
 	"name": "quyz",
-	"version": "1.0.3",
+	"version": "1.0.42",
 	"description": " A lightweight testing harness for Node.js applications.",
 	"bin": {
 		"quyz": "quyz.js"
@@ -16,8 +16,10 @@
 	"author": "Jake Adler",
 	"license": "ISC",
 	"devDependencies": {
+		"@types/chai": "^4.2.14",
 		"@types/node": "^14.14.9",
 		"@types/sinon": "^9.0.9",
+		"chai": "^4.2.0",
 		"nyc": "^15.1.0",
 		"sinon": "^9.2.1",
 		"ts-node": "^9.0.0",

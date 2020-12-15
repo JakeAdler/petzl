@@ -58,7 +58,7 @@ export default class Collector {
 				hooks: [],
 			});
 
-			await import(file);
+			require(file);
 
 			this.runner.pushAction({
 				type: "file-end",

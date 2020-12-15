@@ -21,7 +21,9 @@ export default class Hijacker {
 	public hijackConsoleLogs = () => {
 		if (!this.dev) {
 			global.console.log = (...args: any[]) => {
-				this.capturedLogs.push(...args);
+				this.capturedLogs.push(
+					args.map((a) => (typeof a === "string" ? a : inspect(a)))
+				);
 			};
 		}
 	};
