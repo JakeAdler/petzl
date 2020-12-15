@@ -46,7 +46,7 @@ export default class Collector {
 	};
 
 	private getRealPaths = (paths: string[]) => {
-		return paths.map((file) => fs.realpathSync(file));
+		return paths.map((p) => fs.realpathSync(p));
 	};
 
 	private runList = async (paths: string[]) => {
@@ -68,7 +68,7 @@ export default class Collector {
 	};
 
 	//Collectors
-	//entryPoint
+
 	public entryPoint = async (config: EntryPointConfiguration) => {
 		const { root } = config;
 
