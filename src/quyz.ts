@@ -24,6 +24,20 @@ class Quyz {
 
 	public assert = NodeAssert.strict;
 
+	public globalSetup = (cb: AnyVoidCB) => {
+		this.runner.pushAction({
+			type: "global-setup",
+			cb,
+		});
+	};
+
+	public globalTeardown = (cb: AnyVoidCB) => {
+		this.runner.pushAction({
+			type: "global-teardown",
+			cb,
+		});
+	};
+
 	public beforeEach = (cb: AnyVoidCB) => {
 		this.runner.pushHookAction("beforeEach", cb);
 	};
@@ -62,7 +76,7 @@ class Quyz {
 
 	public describe = <T extends any[]>(
 		title: Title<T>,
-		cb: (...args: T) => void,
+		cb: MacroCB<T>,
 		...args: T
 	): void => {
 		this.runner.pushAction({

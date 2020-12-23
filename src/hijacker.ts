@@ -16,7 +16,7 @@ export default class Hijacker {
 		this.dev = config.dev === false ? false : true;
 	}
 
-	public capturedLogs = [];
+	public capturedLogs: string[][] = [];
 
 	public hijackConsoleLogs = () => {
 		if (!this.dev) {
@@ -33,8 +33,12 @@ export default class Hijacker {
 		const capturedLen = this.capturedLogs.length;
 		for (let i = 0; i < capturedLen; i++) {
 			const message = this.capturedLogs[i];
-			const formatted =
-				typeof message === "string" ? message : inspect(message);
+			const formatted = message.map((m) => {
+				if (typeof m === "string") {
+					return m;
+				}
+				return inspect(m);
+			});
 			if (i === capturedLen - 1) {
 				log(`└ ${formatted}`);
 			} else {
@@ -60,6 +64,16 @@ export default class Hijacker {
 	public releaseDoOnceLog = () => {
 		if (this.capturedLogs.length && this.volume >= 2) {
 			this.logger.log(this.logger.colors.magenta(`doOnce:`));
+			this.releaseCaputredlogs();
+		}
+		this.capturedLogs = [];
+	};
+
+	public releaseGlobalActionLogs = (
+		name: "globalSetup" | "globalTeardown"
+	) => {
+		if (this.capturedLogs.length && this.volume >= 2) {
+			this.logger.log(this.logger.colors.magenta(name));
 			this.releaseCaputredlogs();
 		}
 		this.capturedLogs = [];

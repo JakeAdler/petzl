@@ -23,6 +23,11 @@ import {
 	isGroupStartAction,
 	isGroupEndAction,
 	isDescribeAction,
+	isGlobalSetupAction,
+	isGlobalTeardownAction,
+	isGlobalAction,
+	GlobalSetupAction,
+	GlobalTeardownAction,
 } from "./types";
 
 export default class Runner {
@@ -123,6 +128,10 @@ export default class Runner {
 				if (isGroupEndAction(action)) {
 					await this.handleGroupEndAction(action);
 				}
+
+				if (isGlobalAction(action)) {
+					await this.handleGlobalAction(action);
+				}
 			}
 		} finally {
 			if (!this.dev) {
@@ -157,8 +166,24 @@ export default class Runner {
 		await walk(this.queue);
 	};
 
+	private orderSetupAndTeardown = () => {
+		const setupActions = this.queue.filter(isGlobalSetupAction);
+		const teardownActions = this.queue.filter(isGlobalTeardownAction);
+
+		for (const action of [...setupActions, ...teardownActions]) {
+			const index = this.queue.indexOf(action);
+			this.queue.splice(index, 1);
+			if (isGlobalSetupAction(action)) {
+				this.queue.unshift(action);
+			} else {
+				this.queue.push(action);
+			}
+		}
+	};
+
 	public processQueue = async () => {
 		await this.resolveDescribes();
+		this.orderSetupAndTeardown();
 	};
 
 	private useCachedHooks = () => {
@@ -190,6 +215,21 @@ export default class Runner {
 	};
 
 	// Handlers
+
+	private handleGlobalAction = async (
+		action: GlobalSetupAction | GlobalTeardownAction
+	) => {
+		this.hijacker.hijackConsoleLogs();
+		let camelCased: "globalSetup" | "globalTeardown";
+		if (action.type === "global-setup") {
+			camelCased = "globalSetup";
+		} else {
+			camelCased = "globalTeardown";
+		}
+
+		await this.runCb(action.cb, camelCased);
+		this.hijacker.releaseGlobalActionLogs(camelCased);
+	};
 
 	private handleDoOnceAction = async (action: DoOnceAction) => {
 		this.hijacker.hijackConsoleLogs();

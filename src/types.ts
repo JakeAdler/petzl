@@ -75,7 +75,9 @@ export interface Action {
 		| "setHook"
 		| "configure"
 		| "file-start"
-		| "file-end";
+		| "file-end"
+		| "global-setup"
+		| "global-teardown";
 }
 
 export interface ItAction<T extends any[]> extends Action {
@@ -130,6 +132,16 @@ export interface DoOnceAction extends Action {
 export interface ConfigureAction extends Action {
 	type: "configure";
 	configuration: Partial<Configuration>;
+}
+
+export interface GlobalSetupAction extends Action {
+	type: "global-setup";
+	cb: AnyCB;
+}
+
+export interface GlobalTeardownAction extends Action {
+	type: "global-teardown";
+	cb: AnyCB;
 }
 
 // Errors
@@ -207,6 +219,24 @@ export const isGroupStartAction = (
 
 export const isGroupEndAction = (action: Action): action is GroupEndAction => {
 	return isFileEndAction(action) || isDescribeEndAction(action);
+};
+
+export const isGlobalSetupAction = (
+	action: Action
+): action is GlobalSetupAction => {
+	return action.type === "global-setup";
+};
+
+export const isGlobalTeardownAction = (
+	action: Action
+): action is GlobalTeardownAction => {
+	return action.type === "global-teardown";
+};
+
+export const isGlobalAction = (
+	action: Action
+): action is GlobalTeardownAction | GlobalSetupAction => {
+	return isGlobalSetupAction(action) || isGlobalTeardownAction(action);
 };
 
 // Collector guards
