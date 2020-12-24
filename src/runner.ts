@@ -148,14 +148,20 @@ export default class Runner {
 	private resolveDescribes = async () => {
 		const walk = async (queue: Action[]) => {
 			this.queue = [];
-			for (const action of queue) {
+			for (let i = 0; i < queue.length; i++) {
+				const action = queue[i];
 				if (isDescribeAction(action)) {
-					try {
-						await action.cb(...action.args);
-					} catch (err) {
-						//TODO: push to errors -- attach title to describe action
-					} finally {
-						await walk(this.queue);
+					const startAction = queue[i - 1];
+					if (isDescribeStartAction(startAction)) {
+						try {
+							await action.cb(...action.args);
+						} catch (err) {
+							throw new Error(
+								`Failed resolving describe block: ${startAction.title}`
+							);
+						} finally {
+							await walk(this.queue);
+						}
 					}
 				} else {
 					this.pushAction(action);

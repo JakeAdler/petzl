@@ -45,7 +45,7 @@ describe("runner", () => {
 	];
 
 	for (const hook of hooks) {
-		it(`should add error to context if error is throw inside hook (${hook})`, async () => {
+		it(`should add error to context if error is throw inside ${hook}`, async () => {
 			const beforeContext = quyz.dev.getContext();
 			assert.strictEqual(beforeContext.errors.length, 0);
 
@@ -64,5 +64,4 @@ describe("runner", () => {
 			assert.strictEqual(afterContext.errors.length, 1);
 		});
 	}
-
 });

@@ -93,7 +93,11 @@ export default class Collector {
 		const matchers = this.getStringArr(match);
 
 		const matchingPaths = this.fileList.filter((fileName) => {
-			return matchers.some((ext) => fileName.endsWith(ext));
+			return matchers.some((ext) => {
+				const firstDot = fileName.indexOf(".");
+				const fullExt = fileName.slice(firstDot);
+				return fullExt !== ext;
+			});
 		});
 
 		if (matchingPaths) {
@@ -105,7 +109,10 @@ export default class Collector {
 	};
 
 	private ignoreFiles = (files: string | string[], root: string) => {
-		const ignore = this.tryToJoinRoot(this.getStringArr(files), root);
+		const ignore = this.getStringArr(files).map((file) => {
+			if (file.startsWith(root)) return file;
+			return path.join(root, file);
+		});
 
 		for (const ignorePath of ignore) {
 			if (!fs.existsSync(ignorePath)) {
