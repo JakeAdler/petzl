@@ -107,6 +107,8 @@ const {
 	afterAll,
 	afterEach,
 	assert,
+	globalSetup,
+	globalTeardown,
 	doOnce,
 	collector,
 } = quyz;
@@ -119,6 +121,8 @@ export {
 	afterAll,
 	afterEach,
 	assert,
+	globalSetup,
+	globalTeardown,
 	doOnce,
 	collector,
 	Quyz,

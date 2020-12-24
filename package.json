@@ -1,6 +1,6 @@
 {
 	"name": "quyz",
-	"version": "1.0.5",
+	"version": "1.0.52",
 	"description": " A lightweight testing harness for Node.js applications.",
 	"bin": {
 		"quyz": "quyz.js"

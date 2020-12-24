@@ -3,7 +3,7 @@ import Logger from "./logger";
 import Configurer from "./configurer";
 import fs from "fs";
 import path from "path";
-import { Configuration, CollectorConfiguration, InputError } from "./types";
+import { Configuration, InputError } from "./types";
 
 export default class Collector {
 	private runner: Runner;
@@ -43,14 +43,6 @@ export default class Collector {
 			}
 			return path.join(process.env["PWD"], file);
 		});
-	};
-
-	private spliceAndUnshift = (files: string[]) => {
-		for (const file of files) {
-			const index = this.fileList.indexOf(file);
-			this.fileList.splice(index, 1);
-			this.fileList.unshift(file);
-		}
 	};
 
 	private fileList: string[] = [];
