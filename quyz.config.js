@@ -3,7 +3,7 @@ module.exports = {
 	bubbleHooks: true,
 	printFileNames: false,
 	collector: {
-		use: "entryPoint",
 		root: "test",
+		ignore: "test/utils",
 	},
 };

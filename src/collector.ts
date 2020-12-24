@@ -3,16 +3,7 @@ import Logger from "./logger";
 import Configurer from "./configurer";
 import fs from "fs";
 import path from "path";
-import {
-	Configuration,
-	EntryPointConfiguration,
-	MatchExtensionsConfiguration,
-	isMatchExtensionsConfig,
-	isEntryPointConfig,
-	isSequencerConfig,
-	SequencerConfiguration,
-	InputError,
-} from "./types";
+import { Configuration, CollectorConfiguration, InputError } from "./types";
 
 export default class Collector {
 	private runner: Runner;
@@ -24,6 +15,45 @@ export default class Collector {
 		this.config = configurer.config;
 		this.logger = new Logger(configurer.config);
 	}
+
+	private getStringArr = (
+		val: string | string[],
+		optionName?: string
+	): string[] => {
+		let arr: string[];
+		if (typeof val === "string") {
+			arr = [val];
+		} else if (Array.isArray(val)) {
+			arr = val;
+		} else {
+			throw new Error(
+				`Expected ${
+					optionName && `option '${optionName}'`
+				} to be type of string or string[] but got type of ${typeof val}`
+			);
+		}
+
+		return arr;
+	};
+
+	private tryToJoinRoot = (paths: string[], root: string): string[] => {
+		return paths.map((file) => {
+			if (!file.startsWith(root) || file.startsWith(`/${root}`)) {
+				file = path.join(root, file);
+			}
+			return path.join(process.env["PWD"], file);
+		});
+	};
+
+	private spliceAndUnshift = (files: string[]) => {
+		for (const file of files) {
+			const index = this.fileList.indexOf(file);
+			this.fileList.splice(index, 1);
+			this.fileList.unshift(file);
+		}
+	};
+
+	private fileList: string[] = [];
 
 	// Recursively get all files in dirPath
 	private getAllFiles = (dirPath: string) => {
@@ -49,8 +79,8 @@ export default class Collector {
 		return paths.map((p) => fs.realpathSync(p));
 	};
 
-	private runList = async (paths: string[]) => {
-		const realPaths = this.getRealPaths(paths);
+	private runFileList = () => {
+		const realPaths = this.getRealPaths(this.fileList);
 		for (const file of realPaths) {
 			this.runner.pushAction({
 				type: "file-start",
@@ -64,27 +94,87 @@ export default class Collector {
 				type: "file-end",
 			});
 		}
-		await this.runner.run();
+		this.runner.run();
 	};
 
-	//Collectors
+	private getFilesMatchingExtension = (match: string | string[]) => {
+		const matchers = this.getStringArr(match);
 
-	public entryPoint = async (config: EntryPointConfiguration) => {
-		const { root } = config;
+		const matchingPaths = this.fileList.filter((fileName) => {
+			return matchers.some((ext) => fileName.endsWith(ext));
+		});
 
-		const cliInput = process.argv[2];
+		if (matchingPaths) {
+			this.fileList = matchingPaths;
+			return;
+		}
+
+		throw new InputError(`No files matching extension ${match}`);
+	};
+
+	private ignoreFiles = (files: string | string[], root: string) => {
+		const ignore = this.tryToJoinRoot(this.getStringArr(files), root);
+
+		for (const ignorePath of ignore) {
+			if (!fs.existsSync(ignorePath)) {
+				throw new Error(`Path ${ignorePath} does not exist`);
+			}
+			const index = this.fileList.indexOf(ignorePath);
+			this.fileList.splice(index, 1);
+		}
+	};
+
+	// Regex match CLI input (requires root option to be set)
+	// Generate regex string e.g.:
+	// input: 'foo' --> 'f.*o.*o.*'
+	private matchRegexInput = (input: string, root: string) => {
+		const allFiles = this.getAllFiles(root);
+
+		const regexStr = new RegExp(
+			input.split("").reduce((prev, acc) => (prev += `${acc}.*`), "")
+		);
+
+		const filesMatchingInput = allFiles.filter((file) => {
+			return file
+				.replace(root, "")
+				.replace(path.extname(file), "")
+				.match(regexStr);
+		});
+
+		if (filesMatchingInput) {
+			this.logger.logCurrentlyRunning("files matching", input);
+			this.fileList = filesMatchingInput;
+			this.runFileList();
+		}
+	};
+
+	public collect = (input?: string) => {
+		const { root, match, ignore } = this.config.collector;
+
+		const cliInput = input || process.argv[2];
 
 		if (!cliInput) {
 			// If root option is set and no CLI input, just run root
 			if (root) {
-				return this.runList(this.getAllFiles(root));
-			}
+				this.fileList = this.getAllFiles(root);
 
-			throw new InputError(
-				"Must provide 'runner.root' option in config file, or the path to a file or directory as a command line argument "
-			);
+				if (ignore) {
+					this.ignoreFiles(ignore, root);
+				}
+
+				if (match) {
+					this.getFilesMatchingExtension(match);
+				}
+
+				return this.runFileList();
+			} else {
+				throw new InputError(
+					"Must provide 'collector.root' option in config file, or the path to a file or directory as a command line argument "
+				);
+			}
 		} else {
 			// Check if CLI input is an actual path to a file or dir
+
 			const realPath = fs.realpathSync(cliInput);
 			const fileArgStat = fs.statSync(realPath);
 
@@ -94,112 +184,21 @@ export default class Collector {
 			if (isFile) {
 				const filePath = fs.realpathSync(cliInput);
 				this.logger.logCurrentlyRunning("file", cliInput);
-				return await this.runList([filePath]);
+				this.fileList = [filePath];
+				return this.runFileList();
 			} else if (isDir) {
 				const allFilesInDir = this.getAllFiles(cliInput);
 				this.logger.logCurrentlyRunning("directory", cliInput);
-				return await this.runList(allFilesInDir);
+				this.fileList = allFilesInDir;
+				return this.runFileList();
 			} else if (root) {
-				// Regex match CLI input (requires root option to be set)
-
-				// Generate regex string e.g.:
-				// input: 'foo' --> 'f.*o.*o.*'
-				const regexStr = new RegExp(
-					cliInput
-						.split("")
-						.reduce((prev, acc) => (prev += `${acc}.*`), "")
-				);
-
-				const matchingFiles = this.getAllFiles(root).filter((file) => {
-					return file
-						.replace(root, "")
-						.replace(path.extname(file), "")
-						.match(regexStr);
-				});
-
-				if (matchingFiles) {
-					this.logger.logCurrentlyRunning("files matching", cliInput);
-					return await this.runList(matchingFiles);
-				}
-
-				throw new InputError(
-					`No files or directories matching ${cliInput}`
-				);
-			}
-
-			throw new InputError(
-				`Could not find file or directory named ${cliInput}`
-			);
-		}
-	};
-
-	public matchExtensions = async (config: MatchExtensionsConfiguration) => {
-		const { match, root } = config;
-		const matchingPaths = this.getAllFiles(root).filter((fileName) => {
-			return match.every((ext) => fileName.endsWith(ext));
-		});
-
-		if (matchingPaths) {
-			return await this.runList(matchingPaths);
-		}
-
-		throw new InputError(`No files matching extension ${match}`);
-	};
-
-	public sequencer = async (config: SequencerConfiguration) => {
-		const { sequence, ignore } = config;
-
-		let allSequencedFiles: string[] = [];
-
-		for (const fileOrDir of sequence) {
-			const isDir = fs.statSync(fileOrDir).isDirectory();
-			if (isDir) {
-				allSequencedFiles.push(...this.getAllFiles(fileOrDir));
+				this.matchRegexInput(cliInput, root);
+				return this.runFileList();
 			} else {
-				allSequencedFiles.push(fileOrDir);
+				throw new InputError(
+					`Input ${cliInput} is not a path to a file or directory, and the 'collector.root' option is not set, set it to use Regex matching`
+				);
 			}
-		}
-
-		if (ignore) {
-			const spliceFile = (file: string) => {
-				const index = allSequencedFiles.indexOf(file);
-				allSequencedFiles.splice(index, 1);
-			};
-			for (const fileOrDir of ignore) {
-				const isDir = fs.statSync(fileOrDir).isDirectory();
-				if (isDir) {
-					const allFilesInDir = this.getAllFiles(fileOrDir);
-					for (const file of allFilesInDir) {
-						spliceFile(file);
-					}
-				} else {
-					spliceFile(fileOrDir);
-				}
-			}
-		}
-
-		await this.runList(allSequencedFiles);
-	};
-
-	public devCollect = async (path: string) => {
-		try {
-			const realPath = fs.realpathSync(path);
-			await this.runList([realPath]);
-		} catch (err) {
-			throw new InputError(`Path ${path} does not exist.`);
-		}
-	};
-
-	public collect = async () => {
-		const collectorConfig = this.config.collector;
-		if (isMatchExtensionsConfig(collectorConfig)) {
-			await this.matchExtensions(collectorConfig);
-		} else if (isEntryPointConfig(collectorConfig)) {
-			await this.entryPoint(collectorConfig);
-		} else if (isSequencerConfig(collectorConfig)) {
-			await this.sequencer(collectorConfig);
-		} else {
-			throw new Error("Cannot read runner cofiguration");
 		}
 	};
 }

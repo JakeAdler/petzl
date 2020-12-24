@@ -5,4 +5,4 @@ const quyz = new Quyz({
 	colors: false,
 });
 
-export { quyz };
+export { quyz, Quyz };

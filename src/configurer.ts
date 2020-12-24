@@ -1,10 +1,4 @@
-import {
-	ConfigError,
-	Configuration,
-	isEntryPointConfig,
-	isMatchExtensionsConfig,
-	isSequencerConfig,
-} from "./types";
+import { ConfigError, Configuration } from "./types";
 import fs from "fs";
 import path from "path";
 import { registerProcessEventListeners } from "./utils";
@@ -25,9 +19,7 @@ export default class Configurer {
 	}
 
 	private defaultConfiguration: Configuration = {
-		collector: {
-			use: "entryPoint",
-		},
+		collector: null,
 		volume: 3,
 		bubbleHooks: false,
 		printFileNames: true,
@@ -128,69 +120,57 @@ export default class Configurer {
 
 		if (!collector) return;
 
-		if (isMatchExtensionsConfig(collector)) {
-			// validate matchExtensions config
-			const requiredMessage =
-				"is required to use the 'matchExtensions' collector";
-
-			isRequired("collector.root", collector.root, requiredMessage);
-
-			isArrayOf("collector.match", collector.match, "string");
-
-			isRequired("collector.match", collector.match, requiredMessage);
-
-			isArrayOf("collector.match", collector.match, "string");
-
+		if (collector.root) {
 			mustExist(
 				"collector.root",
 				collector.root,
 				`Root path ${collector.root} does not exist`
 			);
+		}
 
-			for (let i = 0; i < collector.match.length; i++) {
-				const matcher = collector.match[i];
-
-				isType(`collector.match[${i}]`, matcher, "string");
-
+		if (collector.match) {
+			isRequired(
+				"collector.root",
+				collector.root,
+				"is required to use the 'collector.matchExtensions' option"
+			);
+			const checkCharAt0 = (matcher: string) => {
 				if (matcher.charAt(0) !== ".") {
 					throw new ConfigError(
 						"collector.match",
 						`: Matcher should begin with '.', but got '${matcher}'`
 					);
 				}
-			}
-		} else if (isEntryPointConfig(collector)) {
-			isType("collector.root", collector.root, "string");
+			};
 
-			if (collector.root) {
-				mustExist(
-					"collector.root",
-					collector.root,
-					`path to root does not exist -> "${collector.root}"`
-				);
+			if (typeof collector.match === "string") {
+				isType(`collector.match`, collector.match, "string");
+				checkCharAt0(collector.match);
+			} else if (Array.isArray(collector.match)) {
+				for (let i = 0; i < collector.match.length; i++) {
+					const matcher = collector.match[i];
+
+					isType(`collector.match[${i}]`, matcher, "string");
+					checkCharAt0(matcher);
+				}
 			}
-		} else if (isSequencerConfig(collector)) {
-			//TODO: Validate 'ignore' option
+		}
+
+		if (collector.ignore) {
 			isRequired(
-				"collector.sequence",
-				collector.sequence,
-				"is required to use the 'sequencer' collector"
+				"collector.root",
+				collector.root,
+				"is required to use the 'collector.ignore' option"
 			);
 
-			isArrayOf("collector.sequence", collector.sequence, "string");
-
-			for (const fileOrDir of collector.sequence) {
-				mustExist(
-					"collector.include",
-					fileOrDir,
-					`Path in sequence does not exist: ${fileOrDir}`
-				);
+			if (typeof collector.ignore !== "string") {
+				if (!Array.isArray(collector.ignore)) {
+					throw new ConfigError(
+						"collector.ignore",
+						`Expected type of string or string[], but got type of ${typeof collector.ignore}`
+					);
+				}
 			}
-		} else if (collector.use) {
-			throw new ConfigError(
-				"collector",
-				`Unknown collector '${config.collector.use}', check configuration `
-			);
 		}
 	};
 }

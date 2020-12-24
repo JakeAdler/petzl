@@ -40,27 +40,9 @@ export interface Configuration {
 }
 
 export interface CollectorConfiguration {
-	use: keyof Collector;
-	[key: string]: any;
-}
-
-// Collector configuration
-
-export interface SequencerConfiguration extends CollectorConfiguration {
-	use: "sequencer";
-	sequence: string[];
-	ignore?: string[];
-}
-
-export interface MatchExtensionsConfiguration extends CollectorConfiguration {
-	use: "matchExtensions";
-	match: string[];
-	root: string;
-}
-
-export interface EntryPointConfiguration extends CollectorConfiguration {
-	use: "entryPoint";
 	root?: string;
+	match?: string | string[];
+	ignore?: string | string[];
 }
 
 // Actions
@@ -237,23 +219,4 @@ export const isGlobalAction = (
 	action: Action
 ): action is GlobalTeardownAction | GlobalSetupAction => {
 	return isGlobalSetupAction(action) || isGlobalTeardownAction(action);
-};
-
-// Collector guards
-export const isEntryPointConfig = (
-	config: CollectorConfiguration
-): config is EntryPointConfiguration => {
-	return config && config.use === "entryPoint";
-};
-
-export const isMatchExtensionsConfig = (
-	config: CollectorConfiguration
-): config is MatchExtensionsConfiguration => {
-	return config && config.use === "matchExtensions";
-};
-
-export const isSequencerConfig = (
-	config: CollectorConfiguration
-): config is SequencerConfiguration => {
-	return config && config.use === "sequencer";
 };

@@ -30,10 +30,6 @@ export default class Dev {
 		this.runner.reset();
 		devLogStore.reset();
 	};
-
-	collect = async (path: string) => {
-		await this.collector.devCollect(path);
-	};
 }
 
 class DevLogStore {

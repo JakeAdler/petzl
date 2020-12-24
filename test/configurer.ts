@@ -109,42 +109,20 @@ describe("configurer", () => {
 		it("should fail with invalid collector config", () => {
 			const failingCollectorConfigs: any[] = [
 				{
-					use: "entryPoint",
 					root: "foo",
 				},
 				{
-					use: "matchExtensions",
-				},
-				{
-					use: "matchExtensions",
 					root: "foo",
-				},
-				{
-					use: "matchExtensions",
-					root: "foo",
-					match: [".ts"],
-				},
-				{
-					use: "matchExtensions",
-					root: "tmp_test_root",
 					// fails because needs to start with '.'
-					match: ["ts"],
+					match: "foo",
 				},
 				{
-					use: "matchExtensions",
-					root: "test",
-					// fails because needs to be array
-					match: ".ts",
+					root: "foo",
+					// fails because needs to start with '.'
+					match: "ts",
 				},
 				{
-					use: "sequencer",
-				},
-				{
-					use: "sequencer",
-					sequence: "",
-				},
-				{
-					use: "foo",
+					ignore: "foo",
 				},
 			];
 
@@ -158,24 +136,19 @@ describe("configurer", () => {
 		it("should create Quyz instance with valid collector config", () => {
 			const collectorConfigs: any[] = [
 				{
-					use: "entryPoint",
 					root: "tmp_test_root",
 				},
 				{
-					use: "entryPoint",
-				},
-				{
-					use: "matchExtensions",
 					root: "tmp_test_root",
 					match: [".js"],
 				},
 				{
-					use: "sequencer",
-					sequence: ["tmp_test_root/test.js"],
+					root: "tmp_test_root",
+					ignore: ["tmp_test_root/test2.js"],
 				},
 				{
-					use: "sequencer",
-					sequence: ["tmp_test_root/test.js"],
+					root: "tmp_test_root",
+					match: [".js"],
 					ignore: ["tmp_test_root/test2.js"],
 				},
 			];
