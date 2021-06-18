@@ -89,6 +89,8 @@ describe("collector", () => {
 
 		const queue = quyz.dev.runner.queue;
 
+		console.log(queue)
+
 		assert.strictEqual(queue.length, 2);
 
 		const fileStarts = queue.filter(isFileStartAction);

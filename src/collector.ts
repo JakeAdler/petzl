@@ -94,18 +94,15 @@ export default class Collector {
 
 		const matchingPaths = this.fileList.filter((fileName) => {
 			return matchers.some((ext) => {
-				const firstDot = fileName.indexOf(".");
-				const fullExt = fileName.slice(firstDot);
-				return fullExt !== ext;
+				return fileName.endsWith(ext)
 			});
 		});
 
 		if (matchingPaths) {
 			this.fileList = matchingPaths;
-			return;
+		} else {
+			throw new InputError(`No files matching extension ${match}`);
 		}
-
-		throw new InputError(`No files matching extension ${match}`);
 	};
 
 	private ignoreFiles = (files: string | string[], root: string) => {
