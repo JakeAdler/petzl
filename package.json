@@ -3,14 +3,15 @@
 	"version": "1.0.53",
 	"description": " A lightweight testing harness for Node.js applications.",
 	"bin": {
-		"quyz": "quyz.js"
+		"quyz": "./dist/quyz.js"
 	},
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"scripts": {
 		"test": "./quyz.js",
+		"build": "tsc",
 		"cov": "nyc npm t",
-		"prepublish": "tsc"
+		"prepublish": "npm run build"
 	},
 	"keywords": [],
 	"author": "Jake Adler",

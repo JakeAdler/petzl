@@ -3,3 +3,4 @@ dist/
 .vscode/
 vscode-*
 .nyc_output/
+quyz.config.js
