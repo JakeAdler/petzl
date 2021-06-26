@@ -19,7 +19,9 @@ export default class Configurer {
 	}
 
 	private defaultConfiguration: Configuration = {
-		collector: null,
+		collector: { 
+			root: "test",
+		},
 		volume: 3,
 		bubbleHooks: false,
 		printFileNames: true,
