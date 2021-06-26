@@ -1,17 +1,18 @@
 {
 	"name": "quyz",
-	"version": "1.0.53",
+	"version": "1.0.1",
 	"description": " A lightweight testing harness for Node.js applications.",
 	"bin": {
-		"quyz": "./dist/quyz.js"
+		"quyz": "./bin/quyz.js"
 	},
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"scripts": {
-		"test": "./quyz.js",
+		"test": "./bin/quyz.js",
+		"clean": "rm -rf dist",
 		"build": "tsc",
 		"cov": "nyc npm t",
-		"prepublish": "npm run build"
+		"prepublish": "npm run clean && npm run build"
 	},
 	"keywords": [],
 	"author": "Jake Adler",
